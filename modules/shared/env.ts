@@ -1,16 +1,17 @@
 // Safe environment variable accessor for Zuplo's Web Workers runtime.
-// Tries process.env first, then globalThis (some Zuplo versions expose
-// env vars as globals rather than through process.env).
+// Zuplo exposes env vars via `environment` from @zuplo/runtime.
+import { environment } from "@zuplo/runtime";
+
 export function getenv(key: string): string | undefined {
-  // Try process.env — works in Node.js and most Zuplo versions
+  // Primary: Zuplo's environment object (correct way for Zuplo handlers)
+  const zuploVal = (environment as Record<string, unknown>)[key];
+  if (typeof zuploVal === "string" && zuploVal !== "") return zuploVal;
+
+  // Fallback: process.env (Node.js / other runtimes)
   try {
     const val = process.env[key];
     if (val !== undefined && val !== "") return val;
   } catch {}
-
-  // Fallback: some edge runtimes expose env vars directly on globalThis
-  const globalVal = (globalThis as Record<string, unknown>)[key];
-  if (typeof globalVal === "string" && globalVal !== "") return globalVal;
 
   return undefined;
 }
