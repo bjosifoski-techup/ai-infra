@@ -1,12 +1,13 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
+import { getenv } from "./shared/env.js";
 
 // Proxies requests to LiteLLM, replacing the Keycloak JWT with the
 // LiteLLM master key. The Keycloak JWT is validated by the inbound
 // keycloak-jwt-auth policy before this handler runs.
 
 export default async function (request: ZuploRequest, context: ZuploContext) {
-  const litellmBaseUrl = process.env.LITELLM_BASE_URL;
-  const litellmMasterKey = process.env.LITELLM_MASTER_KEY;
+  const litellmBaseUrl = getenv("LITELLM_BASE_URL");
+  const litellmMasterKey = getenv("LITELLM_MASTER_KEY");
 
   if (!litellmBaseUrl || !litellmMasterKey) {
     return new Response(

@@ -9,6 +9,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
 import { tagStubHubUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const AUTH_URL = "https://account.stubhub.com/oauth2/token";
 const API_BASE = "https://api.stubhub.com";
@@ -37,8 +38,8 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const clientId = process.env.STUBHUB_CLIENT_ID;
-  const clientSecret = process.env.STUBHUB_CLIENT_SECRET;
+  const clientId = getenv("STUBHUB_CLIENT_ID");
+  const clientSecret = getenv("STUBHUB_CLIENT_SECRET");
 
   if (!clientId || !clientSecret) {
     return errorResponse("StubHub credentials not configured", 503);

@@ -10,6 +10,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, FlightResult, HotelResult, ToolResponse } from "./shared/types.js";
 import { tagTravelpayoutsUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const FLIGHTS_BASE = "https://api.travelpayouts.com/aviasales/v3";
 const HOTELS_BASE = "https://engine.hotellook.com/api/v2";
@@ -18,7 +19,7 @@ export async function flightsHandler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiToken = process.env.TRAVELPAYOUTS_API_TOKEN;
+  const apiToken = getenv("TRAVELPAYOUTS_API_TOKEN");
 
   if (!apiToken) {
     return errorResponse("Travelpayouts credentials not configured", 503);
@@ -90,8 +91,8 @@ export async function hotelsHandler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiToken = process.env.TRAVELPAYOUTS_API_TOKEN;
-  const marker = process.env.TRAVELPAYOUTS_MARKER ?? "";
+  const apiToken = getenv("TRAVELPAYOUTS_API_TOKEN");
+  const marker = getenv("TRAVELPAYOUTS_MARKER") ?? "";
 
   if (!apiToken) {
     return errorResponse("Travelpayouts credentials not configured", 503);

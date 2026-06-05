@@ -6,6 +6,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
 import { tagTicketmasterUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://app.ticketmaster.com/discovery/v2";
 
@@ -13,7 +14,7 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiKey = process.env.TICKETMASTER_API_KEY;
+  const apiKey = getenv("TICKETMASTER_API_KEY");
 
   if (!apiKey) {
     return errorResponse("Ticketmaster credentials not configured", 503);

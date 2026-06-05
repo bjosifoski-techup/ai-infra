@@ -6,6 +6,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
 import { tagAliExpressUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://api-sg.aliexpress.com/sync";
 
@@ -34,9 +35,9 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const appKey = process.env.ALIEXPRESS_APP_KEY;
-  const appSecret = process.env.ALIEXPRESS_APP_SECRET;
-  const trackingId = process.env.ALIEXPRESS_TRACKING_ID ?? "";
+  const appKey = getenv("ALIEXPRESS_APP_KEY");
+  const appSecret = getenv("ALIEXPRESS_APP_SECRET");
+  const trackingId = getenv("ALIEXPRESS_TRACKING_ID") ?? "";
 
   if (!appKey || !appSecret) {
     return errorResponse("AliExpress credentials not configured", 503);

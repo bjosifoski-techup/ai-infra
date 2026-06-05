@@ -6,6 +6,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ExperienceResult, ToolResponse } from "./shared/types.js";
 import { tagViatorUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://api.viator.com/partner";
 
@@ -13,7 +14,7 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiKey = process.env.VIATOR_API_KEY;
+  const apiKey = getenv("VIATOR_API_KEY");
 
   if (!apiKey) {
     return errorResponse("Viator credentials not configured", 503);

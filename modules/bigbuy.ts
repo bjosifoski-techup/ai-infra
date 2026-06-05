@@ -5,6 +5,7 @@
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://api.bigbuy.eu/rest";
 
@@ -12,7 +13,7 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiKey = process.env.BIGBUY_API_KEY;
+  const apiKey = getenv("BIGBUY_API_KEY");
 
   if (!apiKey) {
     return errorResponse("BigBuy credentials not configured", 503);

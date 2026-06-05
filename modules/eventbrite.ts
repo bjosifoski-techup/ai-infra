@@ -6,6 +6,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
 import { tagEventbriteUrl } from "./shared/affiliate.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://www.eventbriteapi.com/v3";
 
@@ -13,7 +14,7 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiToken = process.env.EVENTBRITE_API_TOKEN;
+  const apiToken = getenv("EVENTBRITE_API_TOKEN");
 
   if (!apiToken) {
     return errorResponse("Eventbrite credentials not configured", 503);

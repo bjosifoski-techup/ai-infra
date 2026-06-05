@@ -11,6 +11,7 @@
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
+import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -18,7 +19,7 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const accessToken = process.env.CJ_ACCESS_TOKEN;
+  const accessToken = getenv("CJ_ACCESS_TOKEN");
 
   if (!accessToken) {
     return errorResponse("CJDropshipping credentials not configured", 503);
