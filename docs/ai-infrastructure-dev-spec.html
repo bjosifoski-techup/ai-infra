@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerico AI Infrastructure - Developer Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #4c1d95;
+      --primary-light: #7c3aed;
+      --hero-start: #312e81;
+      --hero-end: #8b5cf6;
+      --section-blue: #6366f1;
+      --section-green: #22c55e;
+      --section-purple: #a855f7;
+      --section-orange: #f97316;
+      --section-teal: #14b8a6;
+      --bg: #f7f5fb;
+      --card: #ffffff;
+      --border: #e2dcef;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    header.hero {
+      background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
+      color: white;
+      padding: 56px 0 64px;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .hero .lede {
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+      max-width: 720px;
+      margin: 0;
+    }
+    .hero .meta {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero .meta strong { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+    /* Sections */
+    main { padding: 16px 0 64px; }
+    section { padding: 40px 0; }
+    section.alt { background: var(--bg); }
+    section .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 0 0 6px;
+    }
+    section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    section .sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 0 24px;
+    }
+
+    /* Card and lists */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .table thead th {
+      background: #faf8fd;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table tbody td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table .component {
+      font-size: 13px;
+      color: var(--text-muted);
+      width: 25%;
+    }
+    .table .technology {
+      font-weight: 600;
+      color: var(--text);
+      width: 40%;
+    }
+    .table .purpose {
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3, .grid-5 { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 721px) and (max-width: 900px) {
+      .grid-5 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .item h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .item p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .component-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .component-card .stripe { height: 5px; }
+    .component-card .body { padding: 18px 20px; }
+    .component-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .component-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .tier {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .tier .stripe { height: 5px; }
+    .tier .body { padding: 14px 16px; }
+    .tier h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+    .tier p { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.45; }
+
+    .phase {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .phase .head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .phase .num {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .phase .title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .phase .body { padding: 16px 20px; }
+    .phase ul, .checklist ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .phase li, .checklist li {
+      padding: 4px 0 4px 22px;
+      font-size: 14px;
+      color: #4b5563;
+      position: relative;
+      line-height: 1.5;
+    }
+    .phase li::before {
+      content: "›";
+      position: absolute;
+      left: 6px;
+      color: var(--primary-light);
+      font-weight: 700;
+    }
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      color: var(--section-green);
+      font-weight: 700;
+    }
+
+    .note {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--section-orange);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+    }
+    .note h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .note p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .infra-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    @media (max-width: 720px) {
+      .infra-list { grid-template-columns: 1fr; }
+    }
+    .infra-list li {
+      font-size: 14px;
+      color: #4b5563;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .infra-list li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+    }
+
+    footer.foot {
+      background: var(--primary);
+      color: white;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer.foot p { margin: 4px 0; color: rgba(255,255,255,0.7); }
+    footer.foot .tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 16px; }
+
+    @media print {
+      body { font-size: 12px; background: white; }
+      header.hero { background: var(--primary); }
+      section, section.alt { background: white; padding: 24px 0; }
+      .card, .item, .tier, .phase, .component-card, .note { box-shadow: none; break-inside: avoid; }
+      footer.foot { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <span class="badge">⚙ Developer Reference Document</span>
+      <p class="kicker">Technical Specification</p>
+      <h1>Emerico AI Infrastructure</h1>
+      <p class="lede">LiteLLM proxy, eight MCP servers via Zuplo, MongoDB Atlas conversation memory, and a dedicated Keycloak instance for customer identity. This document is for the engineering team and excludes commercial terms.</p>
+      <p class="meta">Client: <strong>Emerico AI Sdn Bhd</strong> &nbsp; · &nbsp; Engineering reference</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Project Summary -->
+    <section>
+      <div class="container">
+        <p class="kicker">Overview</p>
+        <h2>Project Summary</h2>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0 0 14px;">
+          A separate infrastructure engagement that extends the Emerico AI Commerce Platform with three components. LiteLLM is deployed on Elestio managed cloud and connected to the client's self-hosted LLM, with Keycloak JWT authentication and per-tier rate limiting. Eight MCP servers are configured via the Zuplo API gateway covering three dropshipping partners and five travel and ticketing affiliate partners, with tools auto-generated from OpenAPI specs and rate limiting handled at the gateway layer.
+        </p>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0;">
+          MongoDB Atlas hosts short-term and long-term conversation memory layers, with all reads and writes scoped per user via Keycloak JWT. All three components share a dedicated Keycloak instance deployed on Elestio specifically for Commerce Platform customer identity, separate from the SSO project's realm.
+        </p>
+      </div>
+    </section>
+
+    <!-- Three Components -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Scope</p>
+        <h2>Three Components</h2>
+        <div class="grid-3">
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-blue)"></div>
+            <div class="body">
+              <h3>LiteLLM Proxy</h3>
+              <p>Unified LLM gateway deployed on Elestio managed cloud. Validates Keycloak JWTs, enforces per-tier rate limits, maps RBAC from role claims, and routes requests to the client's self-hosted model.</p>
+            </div>
+          </div>
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-purple)"></div>
+            <div class="body">
+              <h3>MCP Servers via Zuplo</h3>
+              <p>Eight MCP servers configured in Zuplo covering three dropshipping partners (AliExpress, BigBuy, CJDropshipping) and five travel/affiliate partners (Travelpayout, Ticketmaster, Eventbrite, Viator, StubHub). Tools auto-generated from OpenAPI specs where available.</p>
+            </div>
+          </div>
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-teal)"></div>
+            <div class="body">
+              <h3>MongoDB Memory</h3>
+              <p>Atlas-hosted memory layer with short-term (sliding conversation window) and long-term (preferences, summaries, purchase history) schemas. All queries scoped by Keycloak JWT user ID.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section>
+      <div class="container">
+        <p class="kicker">Stack</p>
+        <h2>Technology Stack</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="component">LLM Proxy</td><td class="technology">LiteLLM on Elestio managed cloud</td><td class="purpose">Unified LLM gateway with auth and rate limiting</td></tr>
+              <tr><td class="component">Identity Provider</td><td class="technology">Keycloak (fresh dedicated instance on Elestio)</td><td class="purpose">Customer identity, JWT issuance, RBAC, MFA for all three components</td></tr>
+              <tr><td class="component">Authentication</td><td class="technology">Keycloak OIDC JWT</td><td class="purpose">JWT validation via JWKS, RBAC via role claims</td></tr>
+              <tr><td class="component">MCP Gateway</td><td class="technology">Zuplo API Gateway with native MCP support</td><td class="purpose">Hosts all 8 MCP servers, applies rate limiting and security policies</td></tr>
+              <tr><td class="component">MCP Client SDK</td><td class="technology">MCP Apps / MCP-UI TypeScript SDK</td><td class="purpose">Renders tool results inside the chat interface</td></tr>
+              <tr><td class="component">Memory Database</td><td class="technology">MongoDB Atlas (cloud hosted)</td><td class="purpose">Short-term and long-term conversation memory storage</td></tr>
+              <tr><td class="component">ODM</td><td class="technology">Mongoose</td><td class="purpose">Memory schema management and indexing</td></tr>
+              <tr><td class="component">Runtime</td><td class="technology">Node.js / TypeScript</td><td class="purpose">All gateway, memory, and integration code</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integrations -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">External Systems</p>
+        <h2>Integrations</h2>
+        <div class="grid-2">
+          <div class="item"><h3>Keycloak Identity Provider</h3><p>Fresh dedicated instance deployed on Elestio. Issues JWTs for customer identity, enforces RBAC via role claims, and provides MFA. Used by LiteLLM, Zuplo, and MongoDB for auth and user scoping.</p></div>
+          <div class="item"><h3>LiteLLM ↔ Keycloak</h3><p>JWKS endpoint integration for JWT validation. Per-tier rate limiting (Guest, Free, Silver, Gold, Platinum) and RBAC via Keycloak role claims.</p></div>
+          <div class="item"><h3>LiteLLM ↔ Self-hosted LLM</h3><p>Connection to the client's self-hosted model endpoint, with environment-based configuration and security hardening.</p></div>
+          <div class="item"><h3>AliExpress Open Platform</h3><p>MCP server for product search, filtering, and detail. Tools auto-generated from OpenAPI spec.</p></div>
+          <div class="item"><h3>BigBuy REST API</h3><p>MCP server for product search, filtering, and detail. Tools auto-generated from OpenAPI spec.</p></div>
+          <div class="item"><h3>CJDropshipping API</h3><p>MCP server for product search, filtering, and detail. Tools auto-generated from OpenAPI spec.</p></div>
+          <div class="item"><h3>Travelpayout</h3><p>MCP server providing affiliate deep links with tracking parameters.</p></div>
+          <div class="item"><h3>Ticketmaster</h3><p>MCP server for event search, filtering, and affiliate deep link generation.</p></div>
+          <div class="item"><h3>Eventbrite</h3><p>MCP server for event search, filtering, and affiliate deep link generation.</p></div>
+          <div class="item"><h3>Viator</h3><p>MCP server for experience search, filtering, and affiliate deep link generation.</p></div>
+          <div class="item"><h3>StubHub</h3><p>MCP server for ticket search, filtering, and affiliate deep link generation.</p></div>
+          <div class="item"><h3>MongoDB Atlas</h3><p>Cloud cluster hosting short-term and long-term memory layers, scoped per user via Keycloak JWT.</p></div>
+          <div class="item"><h3>MCP-UI client</h3><p>Client integration for rendering tool results returned by MCP servers inside the chat interface.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Infrastructure -->
+    <section>
+      <div class="container">
+        <p class="kicker">Infrastructure</p>
+        <h2>Hosting & Operational Setup</h2>
+        <div class="card card-body">
+          <ul class="infra-list">
+            <li>LiteLLM proxy deployed on Elestio managed cloud (one-click LiteLLM deployment)</li>
+            <li>Zuplo API Gateway hosting all 8 MCP servers with native MCP support</li>
+            <li>MongoDB Atlas cluster for memory storage with optimized indexes for user-scoped lookups</li>
+            <li>Keycloak JWKS endpoint integration across LiteLLM, Zuplo, and memory APIs</li>
+            <li>Per-user-tier rate limiting at LiteLLM and gateway level</li>
+            <li>JWT user scoping middleware enforced on every memory read and write</li>
+            <li>Environment-based configuration for all API keys, endpoints, and secrets</li>
+            <li>Security hardening across all three components (LiteLLM, Zuplo, memory APIs)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- User Tiers -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Rate Limiting</p>
+        <h2>Per-Tier Rate Limits</h2>
+        <p class="sub">LiteLLM enforces rate limits per Keycloak user tier. RBAC is mapped from Keycloak role claims.</p>
+        <div class="grid-5">
+          <div class="tier"><div class="stripe" style="background:#94a3b8"></div><div class="body"><h3>Guest</h3><p>Lowest LiteLLM rate limit ceiling.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#3b82f6"></div><div class="body"><h3>Free</h3><p>Higher rate limit, registered user.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#a3a3a3"></div><div class="body"><h3>Silver</h3><p>Paid tier with elevated rate limits.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#f59e0b"></div><div class="body"><h3>Gold</h3><p>Paid tier with high rate limits.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#8b5cf6"></div><div class="body"><h3>Platinum</h3><p>Paid tier with the highest rate limits.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scope of Work (phases, no week labels) -->
+    <section>
+      <div class="container">
+        <p class="kicker">Build</p>
+        <h2>Scope of Work</h2>
+        <p class="sub">Three workstreams organized by build order. Within each phase, items are independent unless noted.</p>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-blue)">1</div>
+            <div class="title">Keycloak & LiteLLM Setup</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Keycloak instance deployment on Elestio</li>
+              <li>Customer realm configuration with user tier roles (Guest, Free, Silver, Gold, Platinum)</li>
+              <li>MFA configuration for customer and admin logins</li>
+              <li>LiteLLM proxy deployment on Elestio managed cloud</li>
+              <li>Keycloak JWT integration via JWKS endpoint</li>
+              <li>Per-user-tier rate limiting configuration (Guest, Free, Silver, Gold, Platinum)</li>
+              <li>RBAC role mapping from Keycloak claims</li>
+              <li>Connection to client's self-hosted LLM endpoint</li>
+              <li>Security hardening and environment configuration</li>
+              <li>Smoke testing end-to-end from Vercel frontend through LiteLLM to LLM</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-teal)">2</div>
+            <div class="title">MongoDB Memory Setup</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>MongoDB Atlas cluster configuration</li>
+              <li>Short-term memory schema and API (sliding conversation window)</li>
+              <li>Long-term memory schema and API (preferences, summaries, purchase history)</li>
+              <li>Keycloak JWT user scoping middleware</li>
+              <li>Index setup for fast user-scoped lookups</li>
+              <li>Memory integration into the chat layer</li>
+              <li>Security review and access control verification</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-purple)">3</div>
+            <div class="title">MCP Servers via Zuplo</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Zuplo project setup and gateway configuration</li>
+              <li>AliExpress MCP server: OpenAPI import, tool generation, filtering tools</li>
+              <li>BigBuy MCP server: OpenAPI import, tool generation, filtering tools</li>
+              <li>CJDropshipping MCP server: OpenAPI import, tool generation, filtering tools</li>
+              <li>Travelpayout MCP server: affiliate deep link tools with tracking parameters</li>
+              <li>Ticketmaster MCP server: event search tools, affiliate deep link generation</li>
+              <li>Eventbrite MCP server: event search tools, affiliate deep link generation</li>
+              <li>Viator MCP server: experience search tools, affiliate deep link generation</li>
+              <li>StubHub MCP server: ticket search tools, affiliate deep link generation</li>
+              <li>Zuplo rate limiting and auth policies applied across all 8 servers</li>
+              <li>MCP-UI client integration for rendering tool results in chat</li>
+              <li>End-to-end testing of all tools from chat through Zuplo to partner APIs</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Release Conditions -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Done Criteria</p>
+        <h2>Release Conditions</h2>
+        <p class="sub">Considered feature-complete when every item below is verified end-to-end in production.</p>
+        <div class="card card-body checklist">
+          <ul>
+            <li>Keycloak instance live on Elestio with all five user tier roles and MFA configured</li>
+            <li>LiteLLM proxy live on Elestio with Keycloak JWT validation and per-tier rate limiting verified</li>
+            <li>LiteLLM connected to client's self-hosted LLM endpoint and smoke tested end-to-end</li>
+            <li>MongoDB Atlas cluster live with short-term and long-term memory schemas operational</li>
+            <li>Keycloak JWT user scoping verified on all memory reads and writes</li>
+            <li>All 8 MCP servers live and tested through Zuplo (AliExpress, BigBuy, CJDropshipping, Travelpayout, Ticketmaster, Eventbrite, Viator, StubHub)</li>
+            <li>MCP-UI client integration rendering tool results in chat interface verified</li>
+            <li>Rate limiting and auth policies applied and tested across all components</li>
+            <li>Full source code and configuration files delivered to client repository</li>
+            <li>Technical documentation covering all three components delivered</li>
+            <li>Knowledge transfer session completed with client</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes & Dependencies -->
+    <section>
+      <div class="container">
+        <p class="kicker">Important</p>
+        <h2>Notes & Dependencies</h2>
+
+        <div class="note">
+          <h3>Dedicated Keycloak instance</h3>
+          <p>A fresh Keycloak instance is deployed on Elestio specifically for this infrastructure. It is separate from the SSO project and manages Commerce Platform customer identity only.</p>
+        </div>
+
+        <div class="note">
+          <h3>MCP tool complexity depends on OpenAPI spec quality</h3>
+          <p>Partners with clean OpenAPI specs allow auto-generated tools. Partners without will require manual tool definition. Build order within Phase 3 should prioritize partners with the cleanest specs first to surface effort variance early.</p>
+        </div>
+
+        <div class="note">
+          <h3>Zuplo plan tier</h3>
+          <p>Zuplo plan must support MCP server features. Confirm plan tier before Phase 3 begins.</p>
+        </div>
+
+        <div class="note">
+          <h3>Independent codebase</h3>
+          <p>This engagement does not depend on the Emerico AI Commerce Platform codebase. Components can be developed, deployed, and tested independently and integrated into the Commerce app via configured endpoints.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p><strong style="color: white;">Emerico AI Infrastructure - Phase 1 Add-on</strong></p>
+      <p>Developer reference document. Commercial terms (price, timeline, milestones) are covered in the client-facing proposal and intentionally excluded here.</p>
+      <p class="tag">© TechUp Consulting</p>
+    </div>
+  </footer>
+
+</body>
+</html>

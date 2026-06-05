@@ -1,0 +1,141 @@
+# LiteLLM Proxy Configuration - Emerico AI Infrastructure
+#
+# This file is loaded by LiteLLM at startup.
+# All secrets and URLs come from environment variables - never hard-code them here.
+#
+# How LiteLLM reads this file on Elestio:
+# Set the environment variable LITELLM_CONFIG_PATH to the path of this file, or
+# mount it as a volume and reference it in the Elestio deployment settings.
+
+model_list:
+  - model_name: emerico-chat
+    litellm_params:
+      model: openai/${SELF_HOSTED_LLM_MODEL_NAME:-custom-model}
+      api_base: ${SELF_HOSTED_LLM_BASE_URL}
+      api_key: ${SELF_HOSTED_LLM_API_KEY}
+      # If the self-hosted model is not OpenAI-compatible, change the provider prefix above.
+      # Examples:
+      #   model: huggingface/meta-llama/Llama-2-70b-chat-hf
+      #   model: ollama/llama3
+      #   model: custom/your-model-name   (requires a custom provider handler)
+      # Confirm the API shape with the client before deploying.
+
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}
+  # The salt key encrypts API keys stored in the database.
+  # Generate once with: openssl rand -hex 32
+  # Do not change it after first use - rotating it breaks stored keys.
+  database_connection_pool_limit: 10
+  store_model_in_db: true
+
+  # UI credentials - protect the /ui route in production.
+  # Consider placing the admin UI behind an IP allowlist or VPN on Elestio.
+  ui_username: ${LITELLM_UI_USERNAME}
+  ui_password: ${LITELLM_UI_PASSWORD}
+
+  # Only allow HTTPS. Elestio handles TLS termination, so this applies
+  # to traffic from the load balancer inward.
+  enforce_user_param: true
+
+litellm_settings:
+  # Drop any parameters the self-hosted model does not understand.
+  # Turn this off if tool-calling stops working - the model may need specific params.
+  drop_params: true
+
+  # Log successful and failed requests. Adjust verbosity as needed.
+  success_callback: []
+  failure_callback: []
+
+  # Prevent any secret values from appearing in log output.
+  redact_user_api_key_info: true
+
+# ---------------------------------------------------------------------------
+# JWT authentication via Keycloak JWKS
+# ---------------------------------------------------------------------------
+# LiteLLM validates the Bearer token on every request using the JWKS endpoint.
+# The token must come from the dedicated Keycloak realm - not the SSO realm.
+jwt_auth_config:
+  # The JWKS endpoint of your Keycloak realm.
+  # Pattern: {KEYCLOAK_BASE_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs
+  jwks_url: ${KEYCLOAK_JWKS_URL}
+
+  # The iss claim must exactly match this value. Tokens from other issuers are rejected.
+  issuer: ${KEYCLOAK_ISSUER_URL}
+
+  # The aud claim the token must contain. Set this to match KC_LITELLM_CLIENT_ID
+  # or a dedicated audience you configure in the Keycloak protocol mapper.
+  audience: ${LITELLM_JWT_AUDIENCE}
+
+  # The JWT claim that identifies the user. Standard OIDC value is "sub".
+  user_id_jwt_field: sub
+
+  # The JWT claim that carries the user's tier/role.
+  # This must match KEYCLOAK_TIER_CLAIM - the claim you set in the protocol mapper.
+  team_id_jwt_field: ${KEYCLOAK_TIER_CLAIM}
+
+# ---------------------------------------------------------------------------
+# Per-tier rate limits
+# ---------------------------------------------------------------------------
+# Limits are applied by matching the team_id_jwt_field value from the token.
+# RPM = requests per minute, TPM = tokens per minute.
+# Budget is a hard USD cap - set to a high number if you are not using LiteLLM's
+# spend tracking, or configure properly if you want financial guardrails.
+#
+# Tier ordering: guest (lowest) - free - silver - gold - platinum (highest)
+#
+# These are starting values. Adjust them based on your actual model cost
+# and the SLA you want to offer per tier.
+
+router_settings:
+  routing_strategy: least-busy
+
+team_management:
+  # guest - unauthenticated or unverified users
+  - team_alias: guest
+    team_id: guest
+    rpm_limit: 5
+    tpm_limit: 5000
+    max_budget: 0.10
+    budget_duration: 1d
+    models:
+      - emerico-chat
+
+  # free - registered users on the free plan
+  - team_alias: free
+    team_id: free
+    rpm_limit: 20
+    tpm_limit: 20000
+    max_budget: 0.50
+    budget_duration: 1d
+    models:
+      - emerico-chat
+
+  # silver - entry-level paid tier
+  - team_alias: silver
+    team_id: silver
+    rpm_limit: 60
+    tpm_limit: 60000
+    max_budget: 2.00
+    budget_duration: 1d
+    models:
+      - emerico-chat
+
+  # gold - mid-tier paid
+  - team_alias: gold
+    team_id: gold
+    rpm_limit: 120
+    tpm_limit: 120000
+    max_budget: 5.00
+    budget_duration: 1d
+    models:
+      - emerico-chat
+
+  # platinum - highest paid tier, highest limits
+  - team_alias: platinum
+    team_id: platinum
+    rpm_limit: 300
+    tpm_limit: 300000
+    max_budget: 15.00
+    budget_duration: 1d
+    models:
+      - emerico-chat

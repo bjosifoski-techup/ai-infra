@@ -1,0 +1,399 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Emerico MCP Gateway",
+    "version": "1.0.0",
+    "description": "8 MCP tool servers for dropshipping and travel/events. All routes require a valid Keycloak JWT."
+  },
+  "paths": {
+    "/dropshipping/aliexpress/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search AliExpress products",
+        "operationId": "aliexpress-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/aliexpress)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "pageSize": { "type": "integer", "default": 10 },
+                  "minPrice": { "type": "number" },
+                  "maxPrice": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product search results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/dropshipping/bigbuy/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search BigBuy catalogue",
+        "operationId": "bigbuy-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/bigbuy)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "pageSize": { "type": "integer", "default": 10 },
+                  "language": { "type": "string", "default": "en" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product search results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/dropshipping/cjdropshipping/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search CJDropshipping products",
+        "operationId": "cj-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/cjdropshipping)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "pageSize": { "type": "integer", "default": 10 },
+                  "pageNum": { "type": "integer", "default": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product search results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/flights/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search flights via Travelpayouts",
+        "operationId": "flights-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "flightsHandler",
+            "module": "$import(./modules/travelpayouts)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["origin", "destination", "departureDate"],
+                "properties": {
+                  "origin": { "type": "string", "description": "IATA airport code e.g. LHR" },
+                  "destination": { "type": "string", "description": "IATA airport code e.g. BCN" },
+                  "departureDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "returnDate": { "type": "string", "description": "YYYY-MM-DD, omit for one-way" },
+                  "adults": { "type": "integer", "default": 1 },
+                  "currency": { "type": "string", "default": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Flight results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/hotels/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search hotels via Travelpayouts",
+        "operationId": "hotels-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "hotelsHandler",
+            "module": "$import(./modules/travelpayouts)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["destination", "checkIn", "checkOut"],
+                "properties": {
+                  "destination": { "type": "string" },
+                  "checkIn": { "type": "string", "description": "YYYY-MM-DD" },
+                  "checkOut": { "type": "string", "description": "YYYY-MM-DD" },
+                  "guests": { "type": "integer", "default": 2 },
+                  "currency": { "type": "string", "default": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Hotel results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/ticketmaster/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search events via Ticketmaster",
+        "operationId": "ticketmaster-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/ticketmaster)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "city": { "type": "string" },
+                  "countryCode": { "type": "string", "description": "ISO 3166 e.g. US, GB" },
+                  "startDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "endDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "pageSize": { "type": "integer", "default": 10 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/eventbrite/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search events via Eventbrite",
+        "operationId": "eventbrite-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/eventbrite)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "location": { "type": "string" },
+                  "startDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "pageSize": { "type": "integer", "default": 10 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/viator/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search tours and experiences via Viator",
+        "operationId": "viator-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/viator)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["destination"],
+                "properties": {
+                  "destination": { "type": "string" },
+                  "query": { "type": "string" },
+                  "pageSize": { "type": "integer", "default": 10 },
+                  "currency": { "type": "string", "default": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Experience results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/stubhub/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search tickets via StubHub",
+        "operationId": "stubhub-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/stubhub)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "city": { "type": "string" },
+                  "startDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "pageSize": { "type": "integer", "default": 10 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Ticket results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    }
+  },
+  "components": {
+    "x-zuplo-policies": {
+      "keycloak-jwt-auth": {
+        "name": "keycloak-jwt-auth",
+        "policyType": "open-id-jwt-auth-inbound",
+        "handler": {
+          "export": "OpenIdJwtInboundPolicy",
+          "module": "@zuplo/runtime",
+          "options": {
+            "issuerUrl": "$env(KEYCLOAK_ISSUER_URL)",
+            "audience": "$env(LITELLM_JWT_AUDIENCE)",
+            "jwksUrl": "$env(KEYCLOAK_JWKS_URL)"
+          }
+        }
+      }
+    }
+  }
+}

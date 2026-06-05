@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerico AI Infrastructure - Спецификација за развивачи</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #4c1d95;
+      --primary-light: #7c3aed;
+      --hero-start: #312e81;
+      --hero-end: #8b5cf6;
+      --section-blue: #6366f1;
+      --section-green: #22c55e;
+      --section-purple: #a855f7;
+      --section-orange: #f97316;
+      --section-teal: #14b8a6;
+      --bg: #f7f5fb;
+      --card: #ffffff;
+      --border: #e2dcef;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    header.hero {
+      background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
+      color: white;
+      padding: 56px 0 64px;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .hero .lede {
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+      max-width: 720px;
+      margin: 0;
+    }
+    .hero .meta {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero .meta strong { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+    /* Sections */
+    main { padding: 16px 0 64px; }
+    section { padding: 40px 0; }
+    section.alt { background: var(--bg); }
+    section .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 0 0 6px;
+    }
+    section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    section .sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 0 24px;
+    }
+
+    /* Card and lists */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .table thead th {
+      background: #faf8fd;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table tbody td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table .component {
+      font-size: 13px;
+      color: var(--text-muted);
+      width: 25%;
+    }
+    .table .technology {
+      font-weight: 600;
+      color: var(--text);
+      width: 40%;
+    }
+    .table .purpose {
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3, .grid-5 { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 721px) and (max-width: 900px) {
+      .grid-5 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .item h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .item p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .component-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .component-card .stripe { height: 5px; }
+    .component-card .body { padding: 18px 20px; }
+    .component-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .component-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .tier {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .tier .stripe { height: 5px; }
+    .tier .body { padding: 14px 16px; }
+    .tier h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+    .tier p { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.45; }
+
+    .phase {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .phase .head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .phase .num {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .phase .title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .phase .body { padding: 16px 20px; }
+    .phase ul, .checklist ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .phase li, .checklist li {
+      padding: 4px 0 4px 22px;
+      font-size: 14px;
+      color: #4b5563;
+      position: relative;
+      line-height: 1.5;
+    }
+    .phase li::before {
+      content: "›";
+      position: absolute;
+      left: 6px;
+      color: var(--primary-light);
+      font-weight: 700;
+    }
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      color: var(--section-green);
+      font-weight: 700;
+    }
+
+    .note {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--section-orange);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+    }
+    .note h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .note p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .infra-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    @media (max-width: 720px) {
+      .infra-list { grid-template-columns: 1fr; }
+    }
+    .infra-list li {
+      font-size: 14px;
+      color: #4b5563;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .infra-list li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+    }
+
+    footer.foot {
+      background: var(--primary);
+      color: white;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer.foot p { margin: 4px 0; color: rgba(255,255,255,0.7); }
+    footer.foot .tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 16px; }
+
+    @media print {
+      body { font-size: 12px; background: white; }
+      header.hero { background: var(--primary); }
+      section, section.alt { background: white; padding: 24px 0; }
+      .card, .item, .tier, .phase, .component-card, .note { box-shadow: none; break-inside: avoid; }
+      footer.foot { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <span class="badge">⚙ Референтен документ за развивачи</span>
+      <p class="kicker">Техничка спецификација</p>
+      <h1>Emerico AI Infrastructure</h1>
+      <p class="lede">LiteLLM прокси, осум MCP сервери преку Zuplo, MongoDB Atlas меморија за разговори и наменска Keycloak инстанца за идентитет на корисниците. Овој документ е наменет за инженерскиот тим и не ги вклучува комерцијалните услови.</p>
+      <p class="meta">Клиент: <strong>Emerico AI Sdn Bhd</strong> &nbsp; · &nbsp; Инженерска референца</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Резиме на проектот -->
+    <section>
+      <div class="container">
+        <p class="kicker">Преглед</p>
+        <h2>Резиме на проектот</h2>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0 0 14px;">
+          Посебен инфраструктурен ангажман кој ја проширува платформата Emerico AI Commerce Platform со три компоненти. LiteLLM е распореден на управуван облак Elestio и поврзан со самохостираниот LLM на клиентот, со автентикација преку Keycloak JWT и ограничување на брзина по ниво. Осум MCP сервери се конфигурирани преку API-портата Zuplo, покривајќи три dropshipping партнери и пет патнички и билетарски партнери, со алатки автоматски генерирани од OpenAPI спецификации и ограничување на брзина управувано на ниво на портата.
+        </p>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0;">
+          MongoDB Atlas ги хостира краткорочните и долгорочните слоеви на меморија за разговори, при што сите читања и запишувања се ограничени по корисник преку Keycloak JWT. Сите три компоненти делат наменска Keycloak инстанца распоредена на Elestio специјално за идентитетот на корисниците на Commerce Platform, одделена од реалмот на SSO проектот.
+        </p>
+      </div>
+    </section>
+
+    <!-- Три компоненти -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Обем</p>
+        <h2>Три компоненти</h2>
+        <div class="grid-3">
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-blue)"></div>
+            <div class="body">
+              <h3>LiteLLM Proxy</h3>
+              <p>Унифицирана LLM-порта распоредена на управуван облак Elestio. Ги валидира Keycloak JWT-токените, ги спроведува ограничувањата на брзина по ниво, го мапира RBAC од тврдења за улоги и ги насочува барањата кон самохостираниот модел на клиентот.</p>
+            </div>
+          </div>
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-purple)"></div>
+            <div class="body">
+              <h3>MCP Servers via Zuplo</h3>
+              <p>Осум MCP сервери конфигурирани во Zuplo, покривајќи три dropshipping партнери (AliExpress, BigBuy, CJDropshipping) и пет патнички/партнерски партнери (Travelpayout, Ticketmaster, Eventbrite, Viator, StubHub). Алатките се автоматски генерирани од OpenAPI спецификации каде е достапно.</p>
+            </div>
+          </div>
+          <div class="component-card">
+            <div class="stripe" style="background: var(--section-teal)"></div>
+            <div class="body">
+              <h3>MongoDB Memory</h3>
+              <p>Слој на меморија хостиран на Atlas со краткорочни (подвижен прозорец на разговорот) и долгорочни (преференции, резимеа, историја на купувања) шеми. Сите прашалници се ограничени со Keycloak JWT корисничкото ID.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Технолошки стек -->
+    <section>
+      <div class="container">
+        <p class="kicker">Стек</p>
+        <h2>Технолошки стек</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>Компонента</th><th>Технологија</th><th>Намена</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="component">LLM прокси</td><td class="technology">LiteLLM on Elestio managed cloud</td><td class="purpose">Унифицирана LLM-порта со автентикација и ограничување на брзина</td></tr>
+              <tr><td class="component">Давател на идентитет</td><td class="technology">Keycloak (свежа наменска инстанца на Elestio)</td><td class="purpose">Идентитет на корисниците, издавање JWT, RBAC, MFA за сите три компоненти</td></tr>
+              <tr><td class="component">Автентикација</td><td class="technology">Keycloak OIDC JWT</td><td class="purpose">Валидација на JWT преку JWKS, RBAC преку тврдења за улоги</td></tr>
+              <tr><td class="component">MCP-порта</td><td class="technology">Zuplo API Gateway with native MCP support</td><td class="purpose">Ги хостира сите 8 MCP сервери, применува ограничување на брзина и безбедносни политики</td></tr>
+              <tr><td class="component">MCP клиентски SDK</td><td class="technology">MCP Apps / MCP-UI TypeScript SDK</td><td class="purpose">Ги прикажува резултатите од алатките во интерфејсот за разговор</td></tr>
+              <tr><td class="component">База на податоци за меморија</td><td class="technology">MongoDB Atlas (cloud hosted)</td><td class="purpose">Складирање на краткорочна и долгорочна меморија за разговори</td></tr>
+              <tr><td class="component">ODM</td><td class="technology">Mongoose</td><td class="purpose">Управување со шема на меморија и индексирање</td></tr>
+              <tr><td class="component">Извршна средина</td><td class="technology">Node.js / TypeScript</td><td class="purpose">Целокупниот код за портата, меморијата и интеграциите</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Интеграции -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Надворешни системи</p>
+        <h2>Интеграции</h2>
+        <div class="grid-2">
+          <div class="item"><h3>Keycloak Identity Provider</h3><p>Свежа наменска инстанца распоредена на Elestio. Издава JWT за идентитет на корисниците, го спроведува RBAC преку тврдења за улоги и обезбедува MFA. Ја користат LiteLLM, Zuplo и MongoDB за автентикација и ограничување на опсег на корисниците.</p></div>
+          <div class="item"><h3>LiteLLM ↔ Keycloak</h3><p>Интеграција на JWKS крајна точка за валидација на JWT. Ограничување на брзина по ниво (Guest, Free, Silver, Gold, Platinum) и RBAC преку Keycloak тврдења за улоги.</p></div>
+          <div class="item"><h3>LiteLLM ↔ Self-hosted LLM</h3><p>Поврзување со крајната точка на самохостираниот модел на клиентот, со конфигурација базирана на околина и зацврстување на безбедноста.</p></div>
+          <div class="item"><h3>AliExpress Open Platform</h3><p>MCP сервер за пребарување, филтрирање и детали на производи. Алатките се автоматски генерирани од OpenAPI спецификација.</p></div>
+          <div class="item"><h3>BigBuy REST API</h3><p>MCP сервер за пребарување, филтрирање и детали на производи. Алатките се автоматски генерирани од OpenAPI спецификација.</p></div>
+          <div class="item"><h3>CJDropshipping API</h3><p>MCP сервер за пребарување, филтрирање и детали на производи. Алатките се автоматски генерирани од OpenAPI спецификација.</p></div>
+          <div class="item"><h3>Travelpayout</h3><p>MCP сервер кој обезбедува партнерски длабоки врски со параметри за следење.</p></div>
+          <div class="item"><h3>Ticketmaster</h3><p>MCP сервер за пребарување, филтрирање на настани и генерирање партнерски длабоки врски.</p></div>
+          <div class="item"><h3>Eventbrite</h3><p>MCP сервер за пребарување, филтрирање на настани и генерирање партнерски длабоки врски.</p></div>
+          <div class="item"><h3>Viator</h3><p>MCP сервер за пребарување, филтрирање на искуства и генерирање партнерски длабоки врски.</p></div>
+          <div class="item"><h3>StubHub</h3><p>MCP сервер за пребарување, филтрирање на билети и генерирање партнерски длабоки врски.</p></div>
+          <div class="item"><h3>MongoDB Atlas</h3><p>Облак кластер кој ги хостира краткорочните и долгорочните слоеви на меморија, ограничени по корисник преку Keycloak JWT.</p></div>
+          <div class="item"><h3>MCP-UI client</h3><p>Интеграција на клиент за прикажување на резултати од алатки вратени од MCP серверите во интерфејсот за разговор.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Инфраструктура -->
+    <section>
+      <div class="container">
+        <p class="kicker">Инфраструктура</p>
+        <h2>Хостирање и оперативно поставување</h2>
+        <div class="card card-body">
+          <ul class="infra-list">
+            <li>LiteLLM прокси распореден на управуван облак Elestio (еднокликна LiteLLM распоредба)</li>
+            <li>Zuplo API Gateway кој ги хостира сите 8 MCP сервери со мајчинска MCP поддршка</li>
+            <li>MongoDB Atlas кластер за складирање меморија со оптимизирани индекси за пребарувања ограничени на корисник</li>
+            <li>Интеграција на Keycloak JWKS крајна точка низ LiteLLM, Zuplo и меморијските API-и</li>
+            <li>Ограничување на брзина по корисничко ниво на ниво на LiteLLM и портата</li>
+            <li>JWT посредник за ограничување на опсегот на корисниците спроведен на секое читање и запишување на меморија</li>
+            <li>Конфигурација базирана на околина за сите API клучеви, крајни точки и тајни</li>
+            <li>Зацврстување на безбедноста низ сите три компоненти (LiteLLM, Zuplo, меморијски API-и)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Нивоа на корисници -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Ограничување на брзина</p>
+        <h2>Ограничувања на брзина по ниво</h2>
+        <p class="sub">LiteLLM спроведува ограничувања на брзина по Keycloak корисничко ниво. RBAC е мапиран од Keycloak тврдења за улоги.</p>
+        <div class="grid-5">
+          <div class="tier"><div class="stripe" style="background:#94a3b8"></div><div class="body"><h3>Guest</h3><p>Најниска горна граница на ограничување на брзина во LiteLLM.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#3b82f6"></div><div class="body"><h3>Free</h3><p>Повисоко ограничување на брзина, регистриран корисник.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#a3a3a3"></div><div class="body"><h3>Silver</h3><p>Платено ниво со зголемени ограничувања на брзина.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#f59e0b"></div><div class="body"><h3>Gold</h3><p>Платено ниво со високи ограничувања на брзина.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#8b5cf6"></div><div class="body"><h3>Platinum</h3><p>Платено ниво со највисоки ограничувања на брзина.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Обем на работа -->
+    <section>
+      <div class="container">
+        <p class="kicker">Градба</p>
+        <h2>Обем на работа</h2>
+        <p class="sub">Три работни текови организирани по ред на градба. Во рамките на секоја фаза, ставките се независни освен ако не е наведено поинаку.</p>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-blue)">1</div>
+            <div class="title">Поставување на Keycloak и LiteLLM</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Распоредување на Keycloak инстанца на Elestio</li>
+              <li>Конфигурација на реалмот на корисниците со улоги по ниво (Guest, Free, Silver, Gold, Platinum)</li>
+              <li>Конфигурација на MFA за корисничките и административните најави</li>
+              <li>Распоредување на LiteLLM прокси на управуван облак Elestio</li>
+              <li>Интеграција на Keycloak JWT преку JWKS крајна точка</li>
+              <li>Конфигурација на ограничување на брзина по корисничко ниво (Guest, Free, Silver, Gold, Platinum)</li>
+              <li>Мапирање на RBAC улоги од Keycloak тврдења</li>
+              <li>Поврзување со самохостираната LLM крајна точка на клиентот</li>
+              <li>Зацврстување на безбедноста и конфигурација на околината</li>
+              <li>Тестирање од крај до крај од Vercel фронтендот преку LiteLLM до LLM</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-teal)">2</div>
+            <div class="title">Поставување на MongoDB меморија</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Конфигурација на MongoDB Atlas кластер</li>
+              <li>Шема и API за краткорочна меморија (подвижен прозорец на разговорот)</li>
+              <li>Шема и API за долгорочна меморија (преференции, резимеа, историја на купувања)</li>
+              <li>Посредник за ограничување на опсегот на корисниците преку Keycloak JWT</li>
+              <li>Поставување индекси за брзи пребарувања ограничени на корисник</li>
+              <li>Интеграција на меморијата во слојот за разговор</li>
+              <li>Преглед на безбедноста и верификација на контролата на пристап</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-purple)">3</div>
+            <div class="title">MCP сервери преку Zuplo</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Поставување на Zuplo проект и конфигурација на портата</li>
+              <li>AliExpress MCP сервер: увоз на OpenAPI, генерирање алатки, алатки за филтрирање</li>
+              <li>BigBuy MCP сервер: увоз на OpenAPI, генерирање алатки, алатки за филтрирање</li>
+              <li>CJDropshipping MCP сервер: увоз на OpenAPI, генерирање алатки, алатки за филтрирање</li>
+              <li>Travelpayout MCP сервер: партнерски алатки за длабоки врски со параметри за следење</li>
+              <li>Ticketmaster MCP сервер: алатки за пребарување настани, генерирање партнерски длабоки врски</li>
+              <li>Eventbrite MCP сервер: алатки за пребарување настани, генерирање партнерски длабоки врски</li>
+              <li>Viator MCP сервер: алатки за пребарување искуства, генерирање партнерски длабоки врски</li>
+              <li>StubHub MCP сервер: алатки за пребарување билети, генерирање партнерски длабоки врски</li>
+              <li>Применето ограничување на брзина и политики за автентикација на Zuplo низ сите 8 сервери</li>
+              <li>Интеграција на MCP-UI клиент за прикажување резултати од алатки во разговорот</li>
+              <li>Тестирање од крај до крај на сите алатки од разговорот преку Zuplo до API-ите на партнерите</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Услови за издавање -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Критериуми за завршување</p>
+        <h2>Услови за издавање</h2>
+        <p class="sub">Се смета за функционално комплетно кога секоја ставка подолу е верификувана од крај до крај во продукција.</p>
+        <div class="card card-body checklist">
+          <ul>
+            <li>Keycloak инстанца активна на Elestio со сите пет улоги по корисничко ниво и конфигуриран MFA</li>
+            <li>LiteLLM прокси активен на Elestio со верификувана валидација на Keycloak JWT и ограничување на брзина по ниво</li>
+            <li>LiteLLM поврзан со самохостираната LLM крајна точка на клиентот и тестиран од крај до крај</li>
+            <li>MongoDB Atlas кластер активен со функционални краткорочни и долгорочни шеми на меморија</li>
+            <li>Верификувано ограничување на опсегот на корисниците преку Keycloak JWT на сите читања и запишувања на меморија</li>
+            <li>Сите 8 MCP сервери активни и тестирани преку Zuplo (AliExpress, BigBuy, CJDropshipping, Travelpayout, Ticketmaster, Eventbrite, Viator, StubHub)</li>
+            <li>Верификувана интеграција на MCP-UI клиент за прикажување резултати од алатки во интерфејсот за разговор</li>
+            <li>Ограничувањата на брзина и политиките за автентикација применети и тестирани низ сите компоненти</li>
+            <li>Целосниот изворен код и конфигурациски датотеки доставени до репозиториумот на клиентот</li>
+            <li>Доставена техничка документација за сите три компоненти</li>
+            <li>Завршена сесија за пренос на знаење со клиентот</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Забелешки и зависности -->
+    <section>
+      <div class="container">
+        <p class="kicker">Важно</p>
+        <h2>Забелешки и зависности</h2>
+
+        <div class="note">
+          <h3>Наменска Keycloak инстанца</h3>
+          <p>Свежа Keycloak инстанца е распоредена на Elestio специјално за оваа инфраструктура. Таа е одделена од SSO проектот и управува само со идентитетот на корисниците на Commerce Platform.</p>
+        </div>
+
+        <div class="note">
+          <h3>Сложеноста на MCP алатките зависи од квалитетот на OpenAPI спецификацијата</h3>
+          <p>Партнерите со чисти OpenAPI спецификации овозможуваат автоматски генерирани алатки. Партнерите без нив ќе бараат рачна дефиниција на алатки. Редоследот на градба во Фаза 3 треба да даде приоритет на партнерите со најчистите спецификации прво, за да се открие варијансата во напорот порано.</p>
+        </div>
+
+        <div class="note">
+          <h3>Ниво на Zuplo план</h3>
+          <p>Zuplo планот мора да поддржува функции за MCP сервери. Потврдете го нивото на планот пред почетокот на Фаза 3.</p>
+        </div>
+
+        <div class="note">
+          <h3>Независна кодна база</h3>
+          <p>Овој ангажман не зависи од кодната база на Emerico AI Commerce Platform. Компонентите можат да бидат развиени, распоредени и тестирани независно и интегрирани во Commerce апликацијата преку конфигурирани крајни точки.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p><strong style="color: white;">Emerico AI Infrastructure - Phase 1 Add-on</strong></p>
+      <p>Референтен документ за развивачи. Комерцијалните услови (цена, временска рамка, пресвртници) се покриени во предлогот наменет за клиентот и намерно се исклучени тука.</p>
+      <p class="tag">© TechUp Consulting</p>
+    </div>
+  </footer>
+
+</body>
+</html>

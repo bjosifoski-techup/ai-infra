@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerico AI Commerce Platform — Developer Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #1a3a6e;
+      --primary-light: #2d5fa0;
+      --hero-start: #0f2c5a;
+      --hero-end: #1e6fd9;
+      --section-blue: #3b82f6;
+      --section-green: #22c55e;
+      --section-purple: #a855f7;
+      --section-orange: #f97316;
+      --section-teal: #14b8a6;
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --border: #dce3ed;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    header.hero {
+      background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
+      color: white;
+      padding: 56px 0 64px;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .hero .lede {
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+      max-width: 720px;
+      margin: 0;
+    }
+    .hero .meta {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero .meta strong { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+    /* Sections */
+    main { padding: 16px 0 64px; }
+    section { padding: 40px 0; }
+    section.alt { background: var(--bg); }
+    section .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 0 0 6px;
+    }
+    section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    section .sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 0 24px;
+    }
+
+    /* Card and lists */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .table thead th {
+      background: #f9fafb;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table tbody td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table .component {
+      font-size: 13px;
+      color: var(--text-muted);
+      width: 25%;
+    }
+    .table .technology {
+      font-weight: 600;
+      color: var(--text);
+      width: 40%;
+    }
+    .table .purpose {
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .item h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .item p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .tier {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .tier .stripe { height: 5px; }
+    .tier .body { padding: 16px 18px; }
+    .tier h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+    .tier p { font-size: 13px; color: var(--text-muted); margin: 0; }
+    .tier .pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(45,95,160,0.1);
+      color: var(--primary-light);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 8px;
+    }
+
+    .phase {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .phase .head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .phase .num {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .phase .title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .phase .body { padding: 16px 20px; }
+    .phase ul, .checklist ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .phase li, .checklist li {
+      padding: 4px 0 4px 22px;
+      font-size: 14px;
+      color: #4b5563;
+      position: relative;
+      line-height: 1.5;
+    }
+    .phase li::before {
+      content: "›";
+      position: absolute;
+      left: 6px;
+      color: var(--primary-light);
+      font-weight: 700;
+    }
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      color: var(--section-green);
+      font-weight: 700;
+    }
+
+    .module {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .module .stripe { height: 5px; }
+    .module .body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; }
+    .module h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+    .module ul { list-style: none; margin: 0; padding: 0; }
+    .module li {
+      padding: 4px 0 4px 18px;
+      font-size: 13.5px;
+      color: #4b5563;
+      position: relative;
+      line-height: 1.5;
+    }
+    .module li::before {
+      content: "•";
+      position: absolute;
+      left: 4px;
+      color: var(--primary-light);
+    }
+
+    .note {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--section-orange);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+    }
+    .note h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .note p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .infra-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    @media (max-width: 720px) {
+      .infra-list { grid-template-columns: 1fr; }
+    }
+    .infra-list li {
+      font-size: 14px;
+      color: #4b5563;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .infra-list li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+    }
+
+    footer.foot {
+      background: var(--primary);
+      color: white;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer.foot p { margin: 4px 0; color: rgba(255,255,255,0.7); }
+    footer.foot .tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 16px; }
+
+    @media print {
+      body { font-size: 12px; background: white; }
+      header.hero { background: var(--primary); }
+      section, section.alt { background: white; padding: 24px 0; }
+      .card, .item, .tier, .phase, .module, .note { box-shadow: none; break-inside: avoid; }
+      footer.foot { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <span class="badge">⚙ Developer Reference Document</span>
+      <p class="kicker">Technical Specification</p>
+      <h1>Emerico AI Commerce Platform</h1>
+      <p class="lede">An AI chat interface and traditional e-commerce storefront in a single Next.js app on Vercel. This document is for the engineering team and excludes commercial terms.</p>
+      <p class="meta">Client: <strong>Emerico AI Sdn Bhd</strong> &nbsp; · &nbsp; Engineering reference</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Project Summary -->
+    <section>
+      <div class="container">
+        <p class="kicker">Overview</p>
+        <h2>Project Summary</h2>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0 0 14px;">
+          A Next.js application deployed on Vercel combining an AI-powered chat interface and a traditional e-commerce storefront into a single seamless experience. The app connects to a GCP-hosted AI agent backend via the AG-UI protocol over SSE, integrates three dropshipping partners for live product data, and handles full e-commerce operations through Openfront and Openship.
+        </p>
+        <p style="color: var(--text-muted); max-width: 760px; margin: 0;">
+          Two separate payment flows live side by side: Stripe for subscription billing and PhotonPay for product checkout. A five-tier user system plus admin, with rate limiting synced to the AI backend per tier, governs access and AI request quotas.
+        </p>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Stack</p>
+        <h2>Technology Stack</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="component">Frontend & Hosting</td><td class="technology">Next.js 14+ (App Router) on Vercel</td><td class="purpose">Web application, hosting, edge network</td></tr>
+              <tr><td class="component">AI SDK</td><td class="technology">Vercel AI SDK v6 + AG-UI TypeScript SDK</td><td class="purpose">Streaming AI responses, custom AG-UI provider</td></tr>
+              <tr><td class="component">Streaming Runtime</td><td class="technology">Edge Runtime</td><td class="purpose">SSE routes that bypass serverless timeout limits</td></tr>
+              <tr><td class="component">E-commerce</td><td class="technology">Openfront (GraphQL API)</td><td class="purpose">Cart, checkout, orders, returns, refunds, disputes</td></tr>
+              <tr><td class="component">Order Fulfillment</td><td class="technology">Openship</td><td class="purpose">Order fulfillment sync, backend operations</td></tr>
+              <tr><td class="component">Subscriptions</td><td class="technology">Stripe</td><td class="purpose">Free / Silver / Gold / Platinum plan billing</td></tr>
+              <tr><td class="component">Product Checkout</td><td class="technology">PhotonPay</td><td class="purpose">One-time product purchase payments</td></tr>
+              <tr><td class="component">Dropshipping</td><td class="technology">AliExpress Open Platform API (registered partner)</td><td class="purpose">Live product feed, search, detail</td></tr>
+              <tr><td class="component">Dropshipping</td><td class="technology">CJDropshipping REST API</td><td class="purpose">Live product feed, search, detail</td></tr>
+              <tr><td class="component">Dropshipping</td><td class="technology">BigBuy REST API</td><td class="purpose">Live product feed, search, detail</td></tr>
+              <tr><td class="component">Auth</td><td class="technology">JWT (short-lived access + refresh) + NextAuth.js or custom</td><td class="purpose">Session, MFA, secure HttpOnly cookies</td></tr>
+              <tr><td class="component">Database</td><td class="technology">PostgreSQL (via Openfront)</td><td class="purpose">Persistent app data</td></tr>
+              <tr><td class="component">Cache / Rate Limit</td><td class="technology">Vercel KV or Redis</td><td class="purpose">Session and rate limit state</td></tr>
+              <tr><td class="component">Design</td><td class="technology">Figma (provided by client)</td><td class="purpose">Design system implementation</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integrations -->
+    <section>
+      <div class="container">
+        <p class="kicker">External Systems</p>
+        <h2>Integrations</h2>
+        <div class="grid-2">
+          <div class="item"><h3>AG-UI SSE bridge to GCP AI agent</h3><p>Custom provider built on the Vercel AI SDK, with short-lived JWT, refresh token rotation, and secure cookie handling.</p></div>
+          <div class="item"><h3>Openfront GraphQL</h3><p>Product cart, checkout, orders, returns, refunds, disputes, chargebacks.</p></div>
+          <div class="item"><h3>Openship API</h3><p>Order fulfillment sync and backend operations.</p></div>
+          <div class="item"><h3>AliExpress Open Platform</h3><p>Live product feed, search, and product detail. Registered partner integration with audit compliance build.</p></div>
+          <div class="item"><h3>CJDropshipping API</h3><p>Live product feed, search, product detail.</p></div>
+          <div class="item"><h3>BigBuy REST API</h3><p>Live product feed, search, product detail.</p></div>
+          <div class="item"><h3>Stripe</h3><p>Subscription plans (Free, Silver, Gold, Platinum), webhook handling, plan upgrade and downgrade.</p></div>
+          <div class="item"><h3>PhotonPay</h3><p>Product purchase checkout, payment confirmation webhooks.</p></div>
+          <div class="item"><h3>GCP AI backend</h3><p>Rate limit registration per user tier, user provisioning, subscription tier sync.</p></div>
+          <div class="item"><h3>MFA</h3><p>TOTP-based for both customers and admin.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Infrastructure -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Infrastructure</p>
+        <h2>Hosting & Operational Setup</h2>
+        <div class="card card-body">
+          <ul class="infra-list">
+            <li>Vercel hosting (Next.js, Edge Runtime, serverless API routes)</li>
+            <li>Edge Runtime for all SSE/streaming routes to avoid serverless timeout limits</li>
+            <li>Vercel KV or Redis for session and rate limit tracking</li>
+            <li>Secure HttpOnly cookies for refresh tokens</li>
+            <li>Short-lived JWT (5-10 minute TTL) for SSE authentication</li>
+            <li>Webhook endpoints for Stripe and PhotonPay event handling</li>
+            <li>Environment-based configuration for all API keys and secrets</li>
+            <li>AliExpress go-live audit compliance build</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- User Tiers -->
+    <section>
+      <div class="container">
+        <p class="kicker">Access</p>
+        <h2>User Tiers</h2>
+        <p class="sub">Five customer tiers plus an admin role. AI request limits are enforced server-side and synced to the GCP backend per tier.</p>
+        <div class="grid-3">
+          <div class="tier"><div class="stripe" style="background:#94a3b8"></div><div class="body"><h3>Guest</h3><p>Limited AI requests (~5/day), full storefront access.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#3b82f6"></div><div class="body"><h3>Registered Free</h3><p>More AI requests (~50/day), full storefront, no payment required.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#a3a3a3"></div><div class="body"><h3>Silver <span class="pill">Paid</span></h3><p>Paid Stripe plan, higher AI request limit, specific LLM model.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#f59e0b"></div><div class="body"><h3>Gold <span class="pill">Paid</span></h3><p>Paid Stripe plan, higher AI request limit, different LLM model.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#8b5cf6"></div><div class="body"><h3>Platinum <span class="pill">Paid</span></h3><p>Paid Stripe plan, highest AI request limit, premium LLM model.</p></div></div>
+          <div class="tier"><div class="stripe" style="background:#ef4444"></div><div class="body"><h3>Admin</h3><p>Full access, MFA required. Manages users and their subscriptions (view, change plan, cancel, view billing status), plus Openfront and Openship.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scope of Work (phases, no week labels) -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Build</p>
+        <h2>Scope of Work</h2>
+        <p class="sub">Five workstreams organized by build order. Within each phase, items are independent unless noted.</p>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-blue)">1</div>
+            <div class="title">Foundation, Auth & User System</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Next.js project setup with Vercel deployment pipeline</li>
+              <li>Five-tier user registration and login system</li>
+              <li>MFA implementation for customers and admin</li>
+              <li>Session management with secure HttpOnly cookies and refresh token rotation</li>
+              <li>Short-lived JWT generation for SSE authentication</li>
+              <li>Admin dashboard login covering Openfront and Openship access</li>
+              <li>User registration sync to GCP AI backend (rate limit provisioning) and Openfront (cart/order identity), with retry and compensation logic for partial failures</li>
+              <li>Stripe subscription plan setup (Free, Silver, Gold, Platinum) with webhook handling for upgrades, downgrades, and cancellations</li>
+              <li>Subscription tier change sync to GCP AI backend</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-purple)">2</div>
+            <div class="title">AI Chat Interface</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>AG-UI TypeScript SDK integration</li>
+              <li>Custom SSE connection to GCP AI backend via Edge Runtime</li>
+              <li>Short-lived JWT auth on every SSE connection with automatic refresh</li>
+              <li>Streaming response rendering in chat UI per Figma design</li>
+              <li>Chat history management and session continuity</li>
+              <li>Rate limiting enforcement per user tier against GCP backend limits</li>
+              <li>Add to cart action triggered from AI chat response (calls Openfront GraphQL)</li>
+              <li>Product link and metadata rendering inside chat responses</li>
+              <li>Security hardening of SSE layer (token expiry, abuse prevention, session binding)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-green)">3</div>
+            <div class="title">Traditional Storefront & Dropshipping</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Two-tab layout implementation per Figma design (AI Chat + Storefront)</li>
+              <li>Live product feed integration from AliExpress Open Platform API</li>
+              <li>Live product feed integration from CJDropshipping API</li>
+              <li>Live product feed integration from BigBuy REST API</li>
+              <li>Product listing, filtering, search, sorting across all three sources</li>
+              <li>Product detail pages with images, pricing, variants, shipping info</li>
+              <li>Unified product display layer abstracting the three different API response formats</li>
+              <li>Add to cart from storefront calling Openfront GraphQL</li>
+              <li>AliExpress audit compliance check across all product display and integration points</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-orange)">4</div>
+            <div class="title">Cart, Checkout & Payments</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Full cart management via Openfront GraphQL (add, remove, update quantities)</li>
+              <li>PhotonPay checkout integration for product purchases with sandbox testing</li>
+              <li>Payment confirmation webhook handling and order status updates</li>
+              <li>Order creation and sync to Openship for fulfillment</li>
+              <li>Returns, refunds, disputes, chargebacks flow via Openfront</li>
+              <li>Order history and tracking per customer account</li>
+              <li>Stripe checkout and billing portal for subscription management</li>
+              <li>Error handling and edge cases across both payment flows</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="head">
+            <div class="num" style="background: var(--section-teal)">5</div>
+            <div class="title">UI Polish, Admin, Testing & Deployment</div>
+          </div>
+          <div class="body">
+            <ul>
+              <li>Full Figma design implementation across all screens</li>
+              <li>Admin panel: user management, subscription management (view, change plan, cancel, view billing status per user), Openfront and Openship access</li>
+              <li>End-to-end testing of all user flows across all five tiers</li>
+              <li>SSE streaming stability and timeout testing on Edge Runtime</li>
+              <li>Multi-system sync stress testing (registration, subscription changes)</li>
+              <li>PhotonPay live credential swap and final checkout testing</li>
+              <li>AliExpress audit preparation and submission</li>
+              <li>Production deployment, environment hardening, final QA</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Additional Modules (formerly Confirmed Add-ons) -->
+    <section>
+      <div class="container">
+        <p class="kicker">Modules</p>
+        <h2>Additional Build Modules</h2>
+        <p class="sub">Bundled into the core scope above. Built in parallel where dependencies allow.</p>
+        <div class="grid-3">
+          <div class="module">
+            <div class="stripe" style="background: var(--section-blue)"></div>
+            <div class="body">
+              <h3>Email Integration</h3>
+              <ul>
+                <li>Email provider setup (SendGrid, Resend, or Brevo)</li>
+                <li>Domain verification and DNS configuration</li>
+                <li>Transactional emails: registration, order confirmation, payment receipt, subscription confirmation and change, refund, password reset</li>
+                <li>Admin alert emails: new orders, failed payments, disputes flagged</li>
+                <li>Marketing emails: subscription upgrade prompts, onboarding sequence for new users, subscription change confirmations, re-engagement emails for free tier users</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="module">
+            <div class="stripe" style="background: var(--section-purple)"></div>
+            <div class="body">
+              <h3>In-App Notifications</h3>
+              <ul>
+                <li>Bell icon with notification centre (read/unread state)</li>
+                <li>Real-time toast alerts for key events</li>
+                <li>Events: order updates, payment confirmations, subscription changes, refund status updates, admin alerts for disputes and failed payments</li>
+                <li>Delivered via SSE using existing infrastructure</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="module">
+            <div class="stripe" style="background: var(--section-green)"></div>
+            <div class="body">
+              <h3>Pricing Markup Console</h3>
+              <ul>
+                <li>Admin UI for managing markup rules across all dropshipping sources (AliExpress, BigBuy, CJDropshipping)</li>
+                <li>Global default markup with per-supplier, per-category, and per-product overrides; percentage or fixed amount</li>
+                <li>Same markup rules applied to both the traditional storefront and MCP tool results returned in AI chat</li>
+                <li>Live preview of marked-up prices against current supplier feeds</li>
+                <li>Audit log of markup changes with timestamp and admin user</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Release Conditions -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Done Criteria</p>
+        <h2>Release Conditions</h2>
+        <p class="sub">Considered feature-complete when every item below is verified end-to-end in production.</p>
+        <div class="card card-body checklist">
+          <ul>
+            <li>All five user tiers functional and tested end-to-end</li>
+            <li>AI chat connected to GCP backend with streaming and rate limiting verified</li>
+            <li>Traditional storefront live with all three dropshipping APIs returning products</li>
+            <li>Cart, checkout, and payments functional (Stripe subscriptions + PhotonPay product checkout)</li>
+            <li>Openfront and Openship deployed on client Vercel account and integrated</li>
+            <li>Admin panel live with user management, subscription controls, and markup console</li>
+            <li>Email integration and in-app notifications live and tested</li>
+            <li>Full source code pushed to client Git repository</li>
+            <li>Technical documentation, deployment guide, and admin guide delivered</li>
+            <li>Knowledge transfer session completed with client</li>
+            <li>Production deployment live on client Vercel account with environment hardening</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes & Dependencies -->
+    <section>
+      <div class="container">
+        <p class="kicker">Important</p>
+        <h2>Notes & Dependencies</h2>
+
+        <div class="note">
+          <h3>Soft dependency on partner environments</h3>
+          <p>Build assumes Openfront, Openship, and the GCP AI backend become accessible for live testing. Development proceeds against API specs in the interim, but live integration testing requires their environments to be ready.</p>
+        </div>
+
+        <div class="note">
+          <h3>PhotonPay live credentials</h3>
+          <p>Live credentials are needed before go-live. Sandbox is used during development.</p>
+        </div>
+
+        <div class="note">
+          <h3>AliExpress audit</h3>
+          <p>AliExpress runs their audit as a post-build review process. It is outside the development workstream and handled separately.</p>
+        </div>
+
+        <div class="note">
+          <h3>Figma covers all screens</h3>
+          <p>UI implementation assumes the Figma file covers both the AI chat surface and the storefront tab. Confirm storefront design is included before kickoff.</p>
+        </div>
+
+        <div class="note">
+          <h3>Marketing email scope</h3>
+          <p>Marketing email scope covers transactional and lifecycle emails only. Full campaign management tools (bulk newsletters, drag-and-drop builders) are not in scope.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p><strong style="color: white;">Emerico AI Commerce Platform — Phase 1</strong></p>
+      <p>Developer reference document. Commercial terms (price, timeline, milestones) are covered in the client-facing proposal and intentionally excluded here.</p>
+      <p class="tag">© TechUp Consulting</p>
+    </div>
+  </footer>
+
+</body>
+</html>

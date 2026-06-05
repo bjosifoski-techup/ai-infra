@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerico Platform - Integration Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #0f4c75;
+      --primary-light: #1b6ca8;
+      --hero-start: #0a2e4a;
+      --hero-end: #1976a8;
+      --section-blue: #1b6ca8;
+      --section-green: #22c55e;
+      --section-purple: #a855f7;
+      --section-orange: #f97316;
+      --section-teal: #14b8a6;
+      --section-red: #ef4444;
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --border: #dce3ed;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header.hero {
+      background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
+      color: white;
+      padding: 56px 0 64px;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .hero .lede {
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+      max-width: 720px;
+      margin: 0;
+    }
+    .hero .meta {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero .meta strong { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+    main { padding: 16px 0 64px; }
+    section { padding: 40px 0; }
+    section.alt { background: #eef2f7; }
+    section .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 0 0 6px;
+    }
+    section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    section .sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 0 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .table thead th {
+      background: #f6f8fb;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table tbody td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 14px;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table .label { font-weight: 600; color: var(--text); white-space: nowrap; }
+    .table .muted { color: var(--text-muted); }
+    .table .highlight { color: var(--section-blue); font-weight: 600; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .item h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .item p, .item ul {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .item ul { padding-left: 16px; }
+    .item li { margin-bottom: 4px; }
+
+    .owner-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .owner-commerce { background: #dbeafe; color: #1e40af; }
+    .owner-infra { background: #ede9fe; color: #6d28d9; }
+    .owner-shared { background: #d1fae5; color: #065f46; }
+    .owner-external { background: #fef3c7; color: #92400e; }
+
+    /* Flow diagram */
+    .flow {
+      background: #0f1d2e;
+      border-radius: 12px;
+      padding: 28px 32px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      color: #e2e8f0;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .flow .fc { color: #7dd3fc; }
+    .flow .fi { color: #c4b5fd; }
+    .flow .fk { color: #86efac; }
+    .flow .fm { color: #fdba74; }
+    .flow .fe { color: #94a3b8; }
+    .flow .fa { color: #f9a8d4; }
+    .flow .arrow { color: #475569; }
+
+    .warn {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-left: 4px solid var(--section-orange);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+    .warn h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: #9a3412;
+    }
+    .warn p {
+      font-size: 13.5px;
+      color: #78350f;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid var(--section-blue);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+    .info h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: #1e3a8a;
+    }
+    .info p {
+      font-size: 13.5px;
+      color: #1e40af;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .exchange-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 720px) {
+      .exchange-row { grid-template-columns: 1fr; }
+    }
+
+    .exchange-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .exchange-card .head {
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .exchange-card .body {
+      padding: 12px 16px;
+    }
+    .exchange-card ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .exchange-card li { margin-bottom: 5px; }
+    .exchange-card code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+      color: #334155;
+    }
+
+    footer.foot {
+      background: var(--primary);
+      color: white;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer.foot p { margin: 4px 0; color: rgba(255,255,255,0.7); }
+    footer.foot .tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 16px; }
+
+    @media print {
+      body { font-size: 12px; background: white; }
+      header.hero { background: var(--primary); }
+      section, section.alt { background: white; padding: 24px 0; }
+      .card, .item, .exchange-card, .warn, .info, .flow { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <div class="badge">Cross-team reference</div>
+      <p class="kicker">Emerico Platform</p>
+      <h1>Integration Architecture</h1>
+      <p class="lede">How the AI Commerce Platform and the AI Infrastructure project connect into a single product. What is shared, what is separate, and what each team needs from the other.</p>
+      <p class="meta"><strong>References:</strong> ai-commerce-dev-spec.html &nbsp;&middot;&nbsp; ai-infrastructure-dev-spec.html</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Overview -->
+    <section>
+      <div class="container">
+        <p class="kicker">Overview</p>
+        <h2>One Product, Two Engineering Teams</h2>
+        <p class="sub">The Emerico AI Commerce Platform is a single product split into two separate engineering engagements. To the end user it is one website. Behind it, two separate codebases and two teams - each responsible for a distinct layer.</p>
+        <div class="grid-2">
+          <div class="item">
+            <span class="owner-badge owner-commerce">Commerce Team</span>
+            <h3>AI Commerce Platform</h3>
+            <p>Next.js application on Vercel. User-facing: login, AI chat interface, storefront, cart, checkout, subscriptions, order management, and admin panel. Spec: ai-commerce-dev-spec.html</p>
+          </div>
+          <div class="item">
+            <span class="owner-badge owner-infra">Infrastructure Team</span>
+            <h3>AI Infrastructure</h3>
+            <p>LiteLLM proxy, Keycloak identity provider, MongoDB memory layer, and Zuplo MCP gateway. Powers the AI and identity layers that the Commerce Platform depends on. Spec: ai-infrastructure-dev-spec.html</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Flow diagram -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Architecture</p>
+        <h2>Request Flow</h2>
+        <p class="sub">How a user request travels through both systems from browser to LLM response.</p>
+        <div class="flow">
+<span class="fe">[User's browser]</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|--- login / auth --------&gt; </span><span class="fk">[Keycloak on Elestio]</span>&nbsp;&nbsp;<span class="fe">// INFRA team deploys. Issues JWT with tier claim.</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|                               JWT (tier=silver, sub=user-id, aud=emerico-litellm)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|</span><br>
+<span class="fc">[Next.js on Vercel]</span>&nbsp;&nbsp;<span class="fe">// COMMERCE team builds</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|--- AI chat request + JWT --&gt; </span><span class="fi">[LiteLLM on Elestio]</span>&nbsp;&nbsp;<span class="fe">// INFRA team deploys</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;validates JWT via Keycloak JWKS</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;enforces rate limits by tier claim</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|--- routes to ---&gt; </span><span class="fe">[Client LLM on GCP]</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|--- tool calls --&gt; </span><span class="fm">[Zuplo MCP servers]</span>&nbsp;&nbsp;<span class="fe">// INFRA team builds</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|--- memory ------&gt; </span><span class="fa">[Memory API + MongoDB]</span>&nbsp;&nbsp;<span class="fe">// INFRA team builds</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|--- storefront / cart ---&gt; </span><span class="fe">[Openfront GraphQL]</span>&nbsp;&nbsp;<span class="fe">// COMMERCE team integrates</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|--- fulfillment ---------&gt; </span><span class="fe">[Openship]</span>&nbsp;&nbsp;<span class="fe">// COMMERCE team integrates</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="arrow">|--- subscription --------&gt; </span><span class="fe">[Stripe]</span>&nbsp;&nbsp;<span class="fe">// COMMERCE team integrates</span><br>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keycloak role -->
+    <section>
+      <div class="container">
+        <p class="kicker">Identity</p>
+        <h2>Keycloak - Auth for Both Projects</h2>
+        <p class="sub">Keycloak is not just an infrastructure component. It is the identity provider for the entire platform, including the Commerce frontend. The Commerce spec lists "NextAuth.js or custom" for auth - Keycloak via NextAuth's Keycloak provider is the intended implementation.</p>
+        <div class="info">
+          <h3>Why Keycloak replaces a custom JWT system</h3>
+          <p>The Commerce spec requires: user login, MFA (TOTP), refresh token rotation, short-lived access tokens, and five-tier role enforcement. Keycloak handles all of this natively. The Infrastructure spec deploys a Keycloak instance specifically labelled "Commerce Platform customer identity." These are the same thing.</p>
+        </div>
+        <div class="grid-2" style="margin-top:14px">
+          <div class="item">
+            <span class="owner-badge owner-infra">Infrastructure team</span>
+            <h3>What Keycloak provides</h3>
+            <ul>
+              <li>User login and registration</li>
+              <li>TOTP MFA (required by both specs)</li>
+              <li>JWT access token (short-lived, 5 min default)</li>
+              <li>Refresh token rotation (secure HttpOnly cookie strategy)</li>
+              <li>Tier role claim in JWT (<code>tier: silver</code>)</li>
+              <li>User ID in JWT (<code>sub</code> - scopes all memory reads/writes)</li>
+              <li>JWKS endpoint (validates tokens across all services)</li>
+            </ul>
+          </div>
+          <div class="item">
+            <span class="owner-badge owner-commerce">Commerce team</span>
+            <h3>How the Commerce app integrates</h3>
+            <ul>
+              <li>Use NextAuth.js with the Keycloak provider</li>
+              <li>Configure with <code>emerico-frontend</code> client ID (PKCE, public)</li>
+              <li>Access token stored in HttpOnly cookie or forwarded server-side</li>
+              <li>Pass access token as Bearer header on AI chat requests to LiteLLM</li>
+              <li>Stripe webhook fires on plan change - must call Keycloak Admin API to update user's realm role to match the new tier</li>
+              <li>Rate limit enforcement in LiteLLM happens automatically from the <code>tier</code> claim</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shared -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Coordination</p>
+        <h2>Shared Between Both Teams</h2>
+        <p class="sub">These components or values must be agreed and aligned across both teams. A mismatch in any of these breaks the integration.</p>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>What</th><th>Who owns / deploys it</th><th>Who consumes it</th><th>When</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="label">Keycloak realm <code>emerico-commerce</code></td>
+                <td>Infrastructure team (deployed on Elestio)</td>
+                <td>Commerce team - configure NextAuth Keycloak provider</td>
+                <td>After Keycloak is deployed (Phase 1 infra)</td>
+              </tr>
+              <tr>
+                <td class="label"><code>emerico-frontend</code> client ID</td>
+                <td>Infrastructure team (pre-configured in realm-export.json)</td>
+                <td>Commerce team - set in NextAuth config</td>
+                <td>After realm import</td>
+              </tr>
+              <tr>
+                <td class="label">Keycloak base URL, JWKS URL, issuer URL</td>
+                <td>Infrastructure team (from Elestio deployment)</td>
+                <td>Commerce team (.env), all infra services (.env)</td>
+                <td>After Keycloak is deployed</td>
+              </tr>
+              <tr>
+                <td class="label">Tier names (exact strings)</td>
+                <td>Must be agreed at kickoff - both teams use the same names</td>
+                <td>Commerce: Stripe plan names, role assignment logic; Infra: Keycloak roles, LiteLLM team config</td>
+                <td>Before either team writes tier logic</td>
+              </tr>
+              <tr>
+                <td class="label">Vercel app redirect URI</td>
+                <td>Commerce team (their Vercel deployment URL)</td>
+                <td>Infrastructure team - must update <code>emerico-frontend</code> client in Keycloak</td>
+                <td>Before Commerce team can test login</td>
+              </tr>
+              <tr>
+                <td class="label">LiteLLM public URL</td>
+                <td>Infrastructure team (from Elestio deployment)</td>
+                <td>Commerce team - AI chat requests go here</td>
+                <td>After LiteLLM is deployed (Phase 1 infra)</td>
+              </tr>
+              <tr>
+                <td class="label">Admin tier handling</td>
+                <td>Agreed by both teams at kickoff</td>
+                <td>Infra: Keycloak role + LiteLLM rate limit; Commerce: admin panel auth</td>
+                <td>Before tier config is finalised</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Separate -->
+    <section>
+      <div class="container">
+        <p class="kicker">Separation</p>
+        <h2>What Each Team Owns Independently</h2>
+        <p class="sub">These areas have no cross-team dependency. Each team owns, builds, and deploys them without coordination.</p>
+        <div class="grid-2">
+          <div class="item">
+            <span class="owner-badge owner-commerce">Commerce team only</span>
+            <h3>Commerce Platform</h3>
+            <ul>
+              <li>Next.js application and Vercel deployment</li>
+              <li>Openfront GraphQL integration (cart, orders, returns)</li>
+              <li>Openship order fulfillment sync</li>
+              <li>Stripe subscription billing and webhooks</li>
+              <li>PhotonPay product checkout</li>
+              <li>Storefront UI and product display (AliExpress, BigBuy, CJDropshipping)</li>
+              <li>Admin panel (user management, subscription management)</li>
+              <li>Email integration and in-app notifications</li>
+              <li>Figma design implementation</li>
+              <li>AliExpress audit compliance</li>
+            </ul>
+          </div>
+          <div class="item">
+            <span class="owner-badge owner-infra">Infrastructure team only</span>
+            <h3>AI Infrastructure</h3>
+            <ul>
+              <li>LiteLLM proxy deployment and configuration</li>
+              <li>Keycloak realm setup and deployment</li>
+              <li>Memory API (Node.js + TypeScript + Mongoose)</li>
+              <li>MongoDB Atlas cluster and schema design</li>
+              <li>Zuplo MCP servers (all 8 partner integrations)</li>
+              <li>Affiliate tracking ID injection (server-side, in Zuplo)</li>
+              <li>Rate limiting enforcement (in LiteLLM, by tier)</li>
+              <li>JWT validation middleware across all infra services</li>
+              <li>Memory scoping by user ID (from Keycloak sub claim)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dropshipping overlap -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Note on Dropshipping</p>
+        <h2>Dropshipping Partners Appear in Both Specs</h2>
+        <p class="sub">AliExpress, BigBuy, and CJDropshipping appear in both specs for different purposes. They are not duplicated systems - they serve different roles.</p>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>Partner</th><th>In Commerce Platform</th><th>In AI Infrastructure (Zuplo)</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="label">AliExpress</td>
+                <td class="muted">Live product feed and search displayed in the storefront UI. Registered partner with audit compliance requirements.</td>
+                <td class="muted">MCP tool exposed to the AI agent for product lookup and search. AI can search products and return results in chat. Affiliate tracking ID injected server-side.</td>
+              </tr>
+              <tr>
+                <td class="label">BigBuy</td>
+                <td class="muted">Live product feed in storefront.</td>
+                <td class="muted">MCP tool for the AI agent to search BigBuy products.</td>
+              </tr>
+              <tr>
+                <td class="label">CJDropshipping</td>
+                <td class="muted">Live product feed in storefront.</td>
+                <td class="muted">MCP tool for the AI agent to search CJDropshipping products.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="info" style="margin-top:14px">
+          <h3>API keys are shared between teams</h3>
+          <p>Both teams will use the same partner API credentials. The Commerce team makes direct API calls for storefront display. The Infrastructure team wraps the same APIs as MCP tools in Zuplo. Coordinate with the client on which account/credentials to use so both teams use the same registered partner account (especially important for AliExpress, which has audit compliance requirements).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Critical open questions -->
+    <section>
+      <div class="container">
+        <p class="kicker">Open Questions</p>
+        <h2>Must Be Resolved at Kickoff</h2>
+        <p class="sub">These are not implementation details - they are architecture decisions that block both teams if left unresolved.</p>
+
+        <div class="warn">
+          <h3>1. Admin tier in Keycloak</h3>
+          <p>The Commerce spec defines 6 tiers: Guest, Registered Free, Silver, Gold, Platinum, and Admin. The Infrastructure spec defines 5 tiers: Guest, Free, Silver, Gold, Platinum - no Admin. Should Admin be a sixth Keycloak realm role? If so, what rate limit does it get in LiteLLM (unlimited or same as Platinum)? Both teams must agree before either finalises tier configuration.</p>
+        </div>
+
+        <div class="warn">
+          <h3>2. Tier name canonical spelling</h3>
+          <p>"Registered Free" (Commerce spec) vs "Free" (Infrastructure spec). The Keycloak role name and the LiteLLM team name must match exactly what the Stripe plan uses internally, because the Stripe webhook handler will read the plan name and assign the Keycloak role. Agree on the canonical name now: "free" or "registered_free" - then both teams use that exact string everywhere.</p>
+        </div>
+
+        <div class="warn">
+          <h3>3. How the AI chat request reaches LiteLLM</h3>
+          <p>The Commerce spec says the Next.js app connects to a "GCP-hosted AI agent backend via AG-UI/SSE." The Infrastructure spec describes LiteLLM as the AI gateway. Does the Commerce frontend talk to LiteLLM directly, or does it talk to the GCP agent which internally calls LiteLLM? This changes how JWT forwarding works. Both teams and the client must agree on the exact call path before Phase 1 is finalised.</p>
+        </div>
+
+        <div class="warn">
+          <h3>4. Stripe tier change - who updates the Keycloak role?</h3>
+          <p>When a user upgrades from Free to Gold on Stripe, their Keycloak realm role must also change (from "free" to "gold"), because the LiteLLM rate limit reads from the JWT tier claim. The Commerce team's Stripe webhook handler must call the Keycloak Admin API to reassign the role. The Infrastructure team must provide the Commerce team with a Keycloak Admin service account or client credentials to make that API call. This is a hand-off between teams.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- What each team needs from the other -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Hand-offs</p>
+        <h2>What Each Team Needs from the Other</h2>
+        <p class="sub">Concrete outputs one team must deliver before the other can proceed.</p>
+
+        <div class="exchange-row">
+          <div class="exchange-card">
+            <div class="head" style="background:#ede9fe; color:#5b21b6">Infrastructure team provides to Commerce team</div>
+            <div class="body">
+              <ul>
+                <li>Keycloak base URL (after Elestio deployment)</li>
+                <li>Keycloak issuer URL and JWKS URL</li>
+                <li><code>emerico-frontend</code> client ID (already decided: <code>emerico-frontend</code>)</li>
+                <li>Realm name (already decided: <code>emerico-commerce</code>)</li>
+                <li>LiteLLM public URL (after Elestio deployment)</li>
+                <li>Keycloak Admin API service account credentials (for Stripe webhook tier sync)</li>
+                <li>Exact canonical tier role names used in Keycloak</li>
+              </ul>
+            </div>
+          </div>
+          <div class="exchange-card">
+            <div class="head" style="background:#dbeafe; color:#1e40af">Commerce team provides to Infrastructure team</div>
+            <div class="body">
+              <ul>
+                <li>Vercel app URL (for Keycloak <code>emerico-frontend</code> redirect URI)</li>
+                <li>Confirmed canonical tier names (to match Stripe plan names)</li>
+                <li>Decision on Admin tier: should it exist in Keycloak, and what rate limit</li>
+                <li>Confirmation on whether frontend calls LiteLLM directly or via GCP agent</li>
+                <li>AliExpress partner account details (shared API credentials)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p>Emerico Platform - Integration Architecture</p>
+      <p>Cross-team reference - not for commercial distribution</p>
+      <p class="tag">Generated from ai-commerce-dev-spec.html + ai-infrastructure-dev-spec.html</p>
+    </div>
+  </footer>
+
+</body>
+</html>

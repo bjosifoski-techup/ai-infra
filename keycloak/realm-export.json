@@ -1,0 +1,247 @@
+{
+  "id": "emerico-commerce",
+  "realm": "emerico-commerce",
+  "displayName": "Emerico Commerce",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
+  "rememberMe": false,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "guest",
+        "description": "Unauthenticated or unverified user. Lowest rate limits.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "free",
+        "description": "Registered user on the free plan.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "silver",
+        "description": "Entry-level paid tier.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "gold",
+        "description": "Mid-level paid tier.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "platinum",
+        "description": "Highest paid tier with the highest rate limits.",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "emerico-frontend",
+      "name": "Emerico Commerce Frontend",
+      "description": "Public OIDC client for the Vercel frontend application. Uses Authorization Code with PKCE - no client secret.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "https://your-vercel-app.vercel.app/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://your-vercel-app.vercel.app",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "emerico-litellm",
+      "name": "LiteLLM Proxy",
+      "description": "Resource server client for the LiteLLM proxy. Validates bearer tokens - does not perform interactive login.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    },
+    {
+      "clientId": "emerico-memory-api",
+      "name": "Memory API",
+      "description": "Resource server client for the MongoDB memory API service. Validates bearer tokens scoped to user ID.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "emerico-zuplo",
+      "name": "Zuplo MCP Gateway",
+      "description": "Resource server client for the Zuplo API gateway. Validates bearer tokens on every MCP tool call.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+
+  "protocolMappers": [
+    {
+      "name": "tier-claim-mapper",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "multivalued": "false",
+        "userinfo.token.claim": "false",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "tier",
+        "jsonType.label": "String",
+        "single": "true"
+      }
+    }
+  ],
+
+  "authenticationFlows": [
+    {
+      "alias": "browser-with-mfa",
+      "description": "Browser login flow with TOTP as a required second factor for customers.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "flowAlias": "browser-with-mfa forms",
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "browser-with-mfa forms",
+      "description": "Username/password plus TOTP.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20
+        }
+      ]
+    }
+  ],
+
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 10
+    },
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 50
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30
+    }
+  ],
+
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+
+  "smtpServer": {
+    "_comment": "Configure your SMTP settings here for email verification and password reset. Leave empty if not set up yet."
+  },
+
+  "eventsEnabled": true,
+  "eventsExpiration": 604800,
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true
+}

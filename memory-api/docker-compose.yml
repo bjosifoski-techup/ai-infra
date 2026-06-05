@@ -1,0 +1,13 @@
+services:
+  memory-api:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_JWKS_URL}
+      KEYCLOAK_ISSUER_URL: ${KEYCLOAK_ISSUER_URL}
+      MEMORY_JWT_AUDIENCE: ${MEMORY_JWT_AUDIENCE}
+      MEMORY_API_PORT: ${MEMORY_API_PORT:-3001}
+    restart: unless-stopped

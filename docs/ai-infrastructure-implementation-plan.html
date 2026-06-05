@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerico AI Infrastructure - Implementation Plan & Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #4c1d95;
+      --primary-light: #7c3aed;
+      --hero-start: #312e81;
+      --hero-end: #8b5cf6;
+      --section-blue: #6366f1;
+      --section-green: #22c55e;
+      --section-purple: #a855f7;
+      --section-orange: #f97316;
+      --section-teal: #14b8a6;
+      --bg: #f7f5fb;
+      --card: #ffffff;
+      --border: #e2dcef;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+      --own: #6d28d9;
+      --ext: #c2410c;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    header.hero {
+      background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
+      color: white;
+      padding: 56px 0 64px;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+    }
+    .hero .lede {
+      font-size: 18px;
+      color: rgba(255,255,255,0.78);
+      max-width: 740px;
+      margin: 0;
+    }
+    .hero .meta {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+    .hero .meta strong { color: rgba(255,255,255,0.92); font-weight: 600; }
+
+    /* Overall progress card in hero */
+    .progress-hero {
+      margin-top: 28px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .progress-hero .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .progress-hero .label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+    .progress-hero .pct { font-size: 20px; font-weight: 700; }
+    .bar {
+      height: 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #a3e635);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Sections */
+    main { padding: 16px 0 64px; }
+    section { padding: 38px 0; }
+    section.alt { background: var(--bg); }
+    section .kicker {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 0 0 6px;
+    }
+    section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    section .sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 0 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 760px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .item h3 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+    .item p { font-size: 13.5px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .flow-step .marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .flow-step .dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .flow-step .line {
+      width: 2px;
+      flex: 1;
+      min-height: 18px;
+      background: var(--border);
+    }
+    .flow-step:last-child .line { display: none; }
+    .flow-step .content {
+      padding-bottom: 16px;
+    }
+    .flow-step .content h3 { font-size: 14px; font-weight: 700; margin: 4px 0 2px; }
+    .flow-step .content p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+    /* Phase tracker */
+    .phase {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .phase .head {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .phase .num {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .phase .head .title { font-weight: 700; font-size: 16px; flex: 1; }
+    .phase .head .title small {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .phase-pct {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .phase .pbar {
+      height: 5px;
+      background: var(--border);
+    }
+    .phase .pbar > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .phase .group {
+      padding: 8px 20px 4px;
+      border-top: 1px solid var(--border);
+    }
+    .phase .group-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin: 10px 0 4px;
+    }
+    .task {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .task:last-child { border-bottom: none; }
+    .task input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin: 1px 0 0;
+      flex-shrink: 0;
+      accent-color: var(--section-green);
+      cursor: pointer;
+    }
+    .task .t-body { flex: 1; }
+    .task .t-title {
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .task input:checked ~ .t-body .t-title {
+      text-decoration: line-through;
+      color: var(--text-faint);
+    }
+    .task .t-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.45;
+    }
+    .task .t-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .tag-critical { background: #fef2f2; color: #b91c1c; }
+    .tag-gate { background: #fff7ed; color: #c2410c; }
+    .tag-sec { background: #f5f3ff; color: #6d28d9; }
+
+    /* Per-task secrets - marked by ORIGIN */
+    .t-secrets {
+      margin-top: 6px;
+      line-height: 2.0;
+    }
+    .t-secrets .line { display: block; }
+    .t-secrets .lbl {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .t-secrets .lbl-own { background: #ede9fe; color: var(--own); }
+    .t-secrets .lbl-ext { background: #ffedd5; color: var(--ext); }
+    .t-secrets code {
+      display: inline-block;
+      border-radius: 5px;
+      padding: 1px 6px;
+      margin: 0 3px 2px 0;
+      font-size: 10.5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      border: 1px solid;
+    }
+    .t-secrets code.own { background: #f3f0fa; color: var(--own); border-color: #ddd6fe; }
+    .t-secrets code.ext { background: #fff3e6; color: var(--ext); border-color: #fed7aa; }
+    .t-secrets .none {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-style: italic;
+    }
+    .t-secrets .hint { font-size: 11px; color: var(--text-faint); }
+    .legend {
+      display: flex;
+      gap: 22px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 14px;
+    }
+    .legend .lg {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    .lg-own { background: #ede9fe; color: var(--own); }
+    .lg-ext { background: #ffedd5; color: var(--ext); }
+
+    .gate {
+      padding: 12px 20px;
+      background: #fff7ed;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: #9a3412;
+    }
+    .gate strong { color: #7c2d12; }
+
+    /* Table */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    .table thead th {
+      background: #faf8fd;
+      text-transform: uppercase;
+      font-size: 10.5px;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table tbody td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table .risk { font-weight: 600; width: 34%; }
+    .table .impact { color: var(--text-muted); }
+    .sev {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      text-transform: uppercase;
+    }
+    .sev-high { background: #fef2f2; color: #b91c1c; }
+    .sev-med { background: #fff7ed; color: #c2410c; }
+
+    /* Secrets register table */
+    .sec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sec-table thead th {
+      background: #faf8fd;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sec-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .sec-table tbody tr:last-child td { border-bottom: none; }
+    .sec-table .grp td {
+      background: #f5f3ff;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .sec-table code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: var(--primary);
+      background: #f3f0fa;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      white-space: nowrap;
+    }
+    .sec-table .where { color: var(--text-muted); }
+    .pill {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .pill-secret { background: #fef2f2; color: #b91c1c; }
+    .pill-config { background: #eef2ff; color: #4338ca; }
+    .pill-own { background: #ede9fe; color: var(--own); }
+    .pill-ext { background: #ffedd5; color: var(--ext); }
+
+    .principle {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .principle .n {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .principle p { margin: 0; font-size: 13.5px; }
+    .principle p strong { color: var(--text); }
+
+    .checklist ul { list-style: none; margin: 0; padding: 0; }
+    .checklist li {
+      padding: 5px 0 5px 24px;
+      font-size: 13.5px;
+      color: #4b5563;
+      position: relative;
+    }
+    .checklist li::before {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      color: var(--section-green);
+      font-weight: 700;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .toolbar button {
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .toolbar button:hover { border-color: var(--primary-light); color: var(--primary-light); }
+
+    .note {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--section-orange);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+    }
+    .note h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
+    .note p { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+    footer.foot {
+      background: var(--primary);
+      color: white;
+      padding: 38px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer.foot p { margin: 4px 0; color: rgba(255,255,255,0.7); }
+    footer.foot .tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 16px; }
+
+    @media print {
+      body { font-size: 12px; background: white; }
+      header.hero { background: var(--primary); }
+      section, section.alt { background: white; padding: 22px 0; }
+      .toolbar { display: none; }
+      footer.foot { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <span class="badge">📋 Engineering Plan &amp; Progress Tracker</span>
+      <p class="kicker">Implementation Roadmap</p>
+      <h1>Emerico AI Infrastructure</h1>
+      <p class="lede">A trackable engineering plan for the three-component infrastructure build: LiteLLM proxy, eight MCP servers via Zuplo, and MongoDB Atlas conversation memory - unified by a dedicated Keycloak identity instance.</p>
+      <div class="progress-hero">
+        <div class="row">
+          <span class="label">Overall progress</span>
+          <span class="pct" id="overallPct">0%</span>
+        </div>
+        <div class="bar"><span id="overallBar"></span></div>
+        <div class="row" style="margin: 10px 0 0;">
+          <span class="label" style="font-weight:500; color:rgba(255,255,255,0.6);" id="overallCount">0 of 0 tasks complete</span>
+        </div>
+      </div>
+      <p class="meta">Client: <strong>Emerico AI Sdn Bhd</strong> &nbsp; · &nbsp; Progress is saved in your browser (localStorage)</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- What we're building -->
+    <section>
+      <div class="container">
+        <p class="kicker">Context</p>
+        <h2>What We Are Building</h2>
+        <p class="sub">An AI infrastructure layer that turns the Emerico AI Commerce Platform into a conversational shopping &amp; booking assistant. A logged-in customer chats with an AI that can search real partner catalogs, book through affiliate links, and remember the customer across sessions.</p>
+        <div class="grid-3">
+          <div class="item">
+            <h3>The brain - LiteLLM Proxy</h3>
+            <p>The front door to the LLM. Validates Keycloak JWTs, enforces per-tier rate limits, maps RBAC, and routes chat requests to the client's self-hosted model.</p>
+          </div>
+          <div class="item">
+            <h3>The hands - MCP Servers via Zuplo</h3>
+            <p>Eight MCP servers expose partner APIs as callable tools, so the LLM can search products and events and generate affiliate deep links that earn commission.</p>
+          </div>
+          <div class="item">
+            <h3>The memory - MongoDB Atlas</h3>
+            <p>Short-term sliding conversation window plus a long-term user profile (preferences, summaries, purchase history). Every record is scoped to one user.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Request lifecycle -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">How It Works</p>
+        <h2>Request Lifecycle - One Chat Turn</h2>
+        <p class="sub">Understanding this flow is the key to the whole build. Two constants on every hop: the Keycloak JWT travels with the request, and everything is scoped to that user.</p>
+        <div class="card card-body">
+          <div class="flow">
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--section-blue)">1</div><div class="line"></div></div>
+              <div class="content">
+                <h3>Customer sends a message</h3>
+                <p>The Vercel frontend attaches the user's Keycloak JWT and calls the LiteLLM proxy.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--section-blue)">2</div><div class="line"></div></div>
+              <div class="content">
+                <h3>LiteLLM authorizes the request</h3>
+                <p>Validates the JWT via Keycloak JWKS, reads the tier from the role claim, applies the rate limit, and checks RBAC model access.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--section-teal)">3</div><div class="line"></div></div>
+              <div class="content">
+                <h3>Memory is loaded</h3>
+                <p>The short-term conversation window and relevant long-term profile are fetched from MongoDB and prepended to the LLM context.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--primary-light)">4</div><div class="line"></div></div>
+              <div class="content">
+                <h3>The self-hosted LLM reasons</h3>
+                <p>The model produces an answer - or decides to call one or more MCP tools to fetch live data.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--section-purple)">5</div><div class="line"></div></div>
+              <div class="content">
+                <h3>Tool calls run through Zuplo</h3>
+                <p>The gateway applies rate limiting and auth, calls the partner API, and injects Emerico's affiliate tracking parameters into generated links.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="marker"><div class="dot" style="background:var(--section-orange)">6</div><div class="line"></div></div>
+              <div class="content">
+                <h3>Result is rendered &amp; remembered</h3>
+                <p>MCP-UI renders product/event cards in the chat; the turn is written back into short-term and (periodically summarized into) long-term memory.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture principles -->
+    <section>
+      <div class="container">
+        <p class="kicker">Ground Rules</p>
+        <h2>Architecture Principles</h2>
+        <p class="sub">Lock these in before writing code - every later decision depends on them.</p>
+        <div class="card card-body">
+          <div class="grid-2" style="gap:18px 28px;">
+            <div class="principle"><div class="n">1</div><p><strong>Keycloak is the single trust anchor.</strong> A fresh, dedicated instance - not the SSO realm. All three components validate the same tokens. Build it first.</p></div>
+            <div class="principle"><div class="n">2</div><p><strong>Independent codebase.</strong> This engagement does not touch the Commerce Platform repo. It integrates via configured endpoints only.</p></div>
+            <div class="principle"><div class="n">3</div><p><strong>Stateless gateways, stateful memory.</strong> LiteLLM and Zuplo hold no user state - they authorize and route. All state lives in MongoDB, keyed by user ID.</p></div>
+            <div class="principle"><div class="n">4</div><p><strong>Defense in depth on user scoping.</strong> The JWT <code>sub</code> claim must filter every memory query - enforced in middleware, never left to individual queries.</p></div>
+            <div class="principle"><div class="n">5</div><p><strong>Config via environment.</strong> No keys, endpoints, or secrets in code. Every secret below lives in an env var or a secret manager.</p></div>
+            <div class="principle"><div class="n">6</div><p><strong>Clean specs first.</strong> Within the MCP phase, build partners with the cleanest OpenAPI specs first to surface effort variance early.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Phase tracker -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Build</p>
+        <h2>Phase Tracker</h2>
+        <p class="sub">Three workstreams by build order. Tick a task to mark it done - progress is saved automatically in your browser. Each task lists the secrets / keys it needs, marked by origin.</p>
+
+        <div class="legend">
+          <span><span class="lg lg-own">You set up</span> a value you create or generate yourself (Keycloak, LiteLLM, MongoDB, Zuplo - all under your control)</span>
+          <span><span class="lg lg-ext">Get externally</span> a key you must obtain from a third-party service or the client</span>
+        </div>
+        <div class="toolbar" style="margin-top:14px;">
+          <button onclick="resetAll()">Reset all</button>
+          <button onclick="window.print()">Print / Export PDF</button>
+        </div>
+
+        <!-- PHASE 1 -->
+        <div class="phase" data-phase="1">
+          <div class="head">
+            <div class="num" style="background:var(--section-blue)">1</div>
+            <div class="title">Keycloak &amp; LiteLLM Setup<small>The auth backbone and the user-facing LLM path. Blocks everything else.</small></div>
+            <div class="phase-pct" data-phase-pct>0%</div>
+          </div>
+          <div class="pbar"><span data-phase-bar style="background:var(--section-blue)"></span></div>
+
+          <div class="group">
+            <div class="group-title">Keycloak</div>
+            <label class="task"><input type="checkbox" data-task="p1-kc-1"><div class="t-body"><div class="t-title">Deploy Keycloak on Elestio</div><div class="t-desc">One-click deployment. Immediately secure the admin console with strong credentials and restricted access.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_ADMIN_USER</code><code class="own">KEYCLOAK_ADMIN_PASSWORD</code> <span class="hint">+ Elestio dashboard login (operator credential - password manager, not env)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-2"><div class="t-body"><div class="t-title">Create dedicated realm</div><div class="t-desc">A fresh realm (e.g. <code>emerico-commerce</code>), fully separate from the SSO project's realm.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_BASE_URL</code><code class="own">KEYCLOAK_REALM</code><code class="own">KEYCLOAK_ISSUER_URL</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-3"><div class="t-body"><div class="t-title">Define 5 user-tier roles</div><div class="t-desc">Realm roles: <code>guest</code>, <code>free</code>, <code>silver</code>, <code>gold</code>, <code>platinum</code>.</div><div class="t-secrets"><span class="none">No secrets - Keycloak configuration only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-4"><div class="t-body"><div class="t-title">Create OIDC clients</div><div class="t-desc">Public client for the Vercel frontend (Auth Code + PKCE); LiteLLM, Zuplo and the memory API act as resource servers.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KC_FRONTEND_CLIENT_ID</code><code class="own">KC_LITELLM_CLIENT_ID</code><code class="own">KC_LITELLM_CLIENT_SECRET</code><code class="own">KC_MEMORY_CLIENT_ID</code><code class="own">KC_MEMORY_CLIENT_SECRET</code><code class="own">KC_ZUPLO_CLIENT_ID</code><code class="own">KC_ZUPLO_CLIENT_SECRET</code> <span class="hint">(client secrets are generated by your own Keycloak)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-5"><div class="t-body"><div class="t-title">Add protocol mapper for the tier claim</div><div class="t-desc">Ensure the user's tier role lands in the access token in a predictable claim that LiteLLM &amp; Zuplo can read.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_TIER_CLAIM</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-6"><div class="t-body"><div class="t-title">Configure MFA<span class="t-tag tag-sec">Security</span></div><div class="t-desc">TOTP required action plus a step-up flow; apply a stricter authentication flow for admin logins.</div><div class="t-secrets"><span class="none">No secrets - Keycloak authentication-flow configuration only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-kc-7"><div class="t-body"><div class="t-title">Verify the JWKS endpoint</div><div class="t-desc">Confirm the realm's JWKS / OpenID configuration URL is reachable by all three components.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_JWKS_URL</code></span></div></div></label>
+          </div>
+
+          <div class="group">
+            <div class="group-title">LiteLLM</div>
+            <label class="task"><input type="checkbox" data-task="p1-ll-1"><div class="t-body"><div class="t-title">Deploy LiteLLM on Elestio managed cloud</div><div class="t-desc">One-click LiteLLM deployment, via the Elestio dashboard login.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">LITELLM_MASTER_KEY</code><code class="own">LITELLM_SALT_KEY</code><code class="own">LITELLM_DATABASE_URL</code><code class="own">LITELLM_UI_USERNAME</code><code class="own">LITELLM_UI_PASSWORD</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-2"><div class="t-body"><div class="t-title">Confirm the self-hosted LLM's API &amp; tool-calling support<span class="t-tag tag-critical">Critical</span></div><div class="t-desc">Verify the API shape (OpenAI-compatible?) and - critically - that the model supports tool/function calling. Phase 3 is worthless without it.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">SELF_HOSTED_LLM_BASE_URL</code> <span class="hint">(request from the client)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-3"><div class="t-body"><div class="t-title">Register the self-hosted LLM as a model</div><div class="t-desc">Endpoint URL and key supplied via environment configuration.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">SELF_HOSTED_LLM_BASE_URL</code><code class="ext">SELF_HOSTED_LLM_API_KEY</code> <span class="hint">(both supplied by the client)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-4"><div class="t-body"><div class="t-title">Enable JWT auth against Keycloak JWKS</div><div class="t-desc">Point LiteLLM at the JWKS URL; configure which claims carry the user ID and the tier/role.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_JWKS_URL</code><code class="own">KEYCLOAK_ISSUER_URL</code><code class="own">LITELLM_JWT_AUDIENCE</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-5"><div class="t-body"><div class="t-title">Define 5 rate-limit tiers</div><div class="t-desc">RPM / TPM / budget per tier - Guest lowest, Platinum highest.</div><div class="t-secrets"><span class="none">No secrets - LiteLLM proxy configuration only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-6"><div class="t-body"><div class="t-title">Configure RBAC model access</div><div class="t-desc">Map roles to which models / endpoints each tier may use.</div><div class="t-secrets"><span class="none">No secrets - LiteLLM proxy configuration only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-7"><div class="t-body"><div class="t-title">Security hardening<span class="t-tag tag-sec">Security</span></div><div class="t-desc">TLS only, master key set, admin UI protected or not publicly exposed, all secrets in env.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">LITELLM_MASTER_KEY</code><code class="own">LITELLM_UI_USERNAME</code><code class="own">LITELLM_UI_PASSWORD</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p1-ll-8"><div class="t-body"><div class="t-title">Smoke test end-to-end</div><div class="t-desc">Full chat round-trip Vercel → LiteLLM → self-hosted LLM; verify rate limiting actually triggers.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">LITELLM_MASTER_KEY</code> <span class="hint">+ a test-user Keycloak login</span></span></div></div></label>
+          </div>
+          <div class="gate"><strong>Exit gate:</strong> a logged-in user can chat through LiteLLM, an invalid/expired token is rejected, and a low tier hits its rate limit before a high tier does.</div>
+        </div>
+
+        <!-- PHASE 2 -->
+        <div class="phase" data-phase="2">
+          <div class="head">
+            <div class="num" style="background:var(--section-teal)">2</div>
+            <div class="title">MongoDB Memory Setup<small>Short-term + long-term conversation memory. Depends only on Phase 1.</small></div>
+            <div class="phase-pct" data-phase-pct>0%</div>
+          </div>
+          <div class="pbar"><span data-phase-bar style="background:var(--section-teal)"></span></div>
+
+          <div class="group">
+            <div class="group-title">Build tasks</div>
+            <label class="task"><input type="checkbox" data-task="p2-1"><div class="t-body"><div class="t-title">Provision the Atlas cluster</div><div class="t-desc">Pick a region close to the Elestio deployment (memory fetch is on the hot path). Lock down network access, create a least-privilege DB user.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">ATLAS_API_PUBLIC_KEY</code><code class="own">ATLAS_API_PRIVATE_KEY</code><code class="own">MONGODB_DB_USER</code><code class="own">MONGODB_DB_PASSWORD</code><code class="own">MONGODB_URI</code><code class="own">MONGODB_DB_NAME</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-2"><div class="t-body"><div class="t-title">Design the short-term memory schema</div><div class="t-desc">Sliding conversation window per <code>userId</code> + <code>sessionId</code>, capped by message count or token budget; TTL index for stale sessions.</div><div class="t-secrets"><span class="none">No secrets - Mongoose schema design only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-3"><div class="t-body"><div class="t-title">Design the long-term memory schema</div><div class="t-desc">Per <code>userId</code>: preferences, rolling conversation summaries, purchase history.</div><div class="t-secrets"><span class="none">No secrets - Mongoose schema design only.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-4"><div class="t-body"><div class="t-title">Create compound indexes</div><div class="t-desc">Indexes leading with <code>userId</code> (then <code>sessionId</code> / <code>updatedAt</code>) for fast user-scoped lookups.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">MONGODB_URI</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-5"><div class="t-body"><div class="t-title">Build the JWT user-scoping middleware<span class="t-tag tag-sec">Security</span></div><div class="t-desc">The security core: validates the JWT, extracts <code>sub</code>, and forces every read/write to filter by that ID. No query path may bypass it.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_JWKS_URL</code><code class="own">KEYCLOAK_ISSUER_URL</code><code class="own">MEMORY_JWT_AUDIENCE</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-6"><div class="t-body"><div class="t-title">Build the memory read/write API</div><div class="t-desc">Endpoints (or an internal module) for short-term and long-term memory operations.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">MONGODB_URI</code><code class="own">MEMORY_API_PORT</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-7"><div class="t-body"><div class="t-title">Integrate memory into the chat layer</div><div class="t-desc">Fetch window + profile before each LLM call; append the turn afterward; periodically summarize older turns into long-term memory.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">MEMORY_API_BASE_URL</code> <span class="hint">+ a service token / JWT</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p2-8"><div class="t-body"><div class="t-title">Security review &amp; cross-user access test<span class="t-tag tag-sec">Security</span></div><div class="t-desc">Explicitly attempt to read another user's memory and confirm it fails; verify the middleware cannot be skipped.</div><div class="t-secrets"><span class="none">No secrets - uses two test-user Keycloak logins.</span></div></div></label>
+          </div>
+          <div class="gate"><strong>Exit gate:</strong> memory persists across turns, long-term preferences influence later answers, and user A provably cannot read user B's memory.</div>
+        </div>
+
+        <!-- PHASE 3 -->
+        <div class="phase" data-phase="3">
+          <div class="head">
+            <div class="num" style="background:var(--section-purple)">3</div>
+            <div class="title">MCP Servers via Zuplo<small>Eight partner integrations. Depends on Phase 1; can run in parallel with Phase 2.</small></div>
+            <div class="phase-pct" data-phase-pct>0%</div>
+          </div>
+          <div class="pbar"><span data-phase-bar style="background:var(--section-purple)"></span></div>
+
+          <div class="group">
+            <div class="group-title">Pre-checks</div>
+            <label class="task"><input type="checkbox" data-task="p3-pre-1"><div class="t-body"><div class="t-title">Confirm the Zuplo plan supports MCP<span class="t-tag tag-gate">Blocking</span></div><div class="t-desc">Verify the plan tier includes MCP server features before any Phase 3 work begins.</div><div class="t-secrets"><span class="none">No secrets - operator check via the Zuplo dashboard login.</span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-pre-2"><div class="t-body"><div class="t-title">Apply for partner API keys early<span class="t-tag tag-gate">Lead time</span></div><div class="t-desc">Several affiliate programs require account approval and gated keys - start applications at project kickoff, not at Phase 3.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">ALIEXPRESS_APP_KEY</code><code class="ext">ALIEXPRESS_APP_SECRET</code><code class="ext">BIGBUY_API_KEY</code><code class="ext">CJ_API_KEY</code><code class="ext">TRAVELPAYOUTS_API_TOKEN</code><code class="ext">TICKETMASTER_API_KEY</code><code class="ext">EVENTBRITE_API_TOKEN</code><code class="ext">VIATOR_API_KEY</code><code class="ext">STUBHUB_CLIENT_ID</code><code class="ext">STUBHUB_CLIENT_SECRET</code> <span class="hint">+ all affiliate IDs/markers</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-pre-3"><div class="t-body"><div class="t-title">Zuplo project setup</div><div class="t-desc">Gateway project, environments, route structure, and secrets.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">ZUPLO_API_KEY</code><code class="own">ZUPLO_PROJECT_NAME</code></span></div></div></label>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Dropshipping MCP servers</div>
+            <label class="task"><input type="checkbox" data-task="p3-ds-1"><div class="t-body"><div class="t-title">AliExpress MCP server</div><div class="t-desc">OpenAPI import, tool generation, product search / filtering / detail tools.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">ALIEXPRESS_APP_KEY</code><code class="ext">ALIEXPRESS_APP_SECRET</code><code class="ext">ALIEXPRESS_TRACKING_ID</code> <span class="hint">(AliExpress Open Platform + affiliate)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-ds-2"><div class="t-body"><div class="t-title">BigBuy MCP server</div><div class="t-desc">OpenAPI import, tool generation, product search / filtering / detail tools.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">BIGBUY_API_KEY</code> <span class="hint">(BigBuy account dashboard)</span></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-ds-3"><div class="t-body"><div class="t-title">CJDropshipping MCP server</div><div class="t-desc">OpenAPI import, tool generation, product search / filtering / detail tools.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">CJ_EMAIL</code> <span class="hint">(your CJ account email)</span></span><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">CJ_API_KEY</code><code class="ext">CJ_ACCESS_TOKEN</code> <span class="hint">(from the CJDropshipping API)</span></span></div></div></label>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Travel &amp; events MCP servers</div>
+            <label class="task"><input type="checkbox" data-task="p3-tv-1"><div class="t-body"><div class="t-title">Travelpayout MCP server</div><div class="t-desc">Affiliate deep-link tools with tracking parameters.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">TRAVELPAYOUTS_API_TOKEN</code><code class="ext">TRAVELPAYOUTS_MARKER</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-tv-2"><div class="t-body"><div class="t-title">Ticketmaster MCP server</div><div class="t-desc">Event search / filtering tools, affiliate deep-link generation.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">TICKETMASTER_API_KEY</code><code class="ext">TICKETMASTER_API_SECRET</code><code class="ext">TICKETMASTER_AFFILIATE_ID</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-tv-3"><div class="t-body"><div class="t-title">Eventbrite MCP server</div><div class="t-desc">Event search / filtering tools, affiliate deep-link generation.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">EVENTBRITE_API_TOKEN</code><code class="ext">EVENTBRITE_AFFILIATE_CODE</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-tv-4"><div class="t-body"><div class="t-title">Viator MCP server</div><div class="t-desc">Experience search / filtering tools, affiliate deep-link generation.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">VIATOR_API_KEY</code><code class="ext">VIATOR_PARTNER_ID</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-tv-5"><div class="t-body"><div class="t-title">StubHub MCP server</div><div class="t-desc">Ticket search / filtering tools, affiliate deep-link generation.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-ext">Get externally</span><code class="ext">STUBHUB_CLIENT_ID</code><code class="ext">STUBHUB_CLIENT_SECRET</code><code class="ext">STUBHUB_AFFILIATE_ID</code></span></div></div></label>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Gateway &amp; integration</div>
+            <label class="task"><input type="checkbox" data-task="p3-int-1"><div class="t-body"><div class="t-title">Apply Zuplo rate-limit &amp; auth policies</div><div class="t-desc">Uniform rate limiting and JWT/service-token auth across all 8 servers.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">KEYCLOAK_JWKS_URL</code><code class="own">ZUPLO_GATEWAY_API_KEY</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-int-2"><div class="t-body"><div class="t-title">MCP-UI client integration</div><div class="t-desc">Render tool results as product / event cards inside the chat interface.</div><div class="t-secrets"><span class="line"><span class="lbl lbl-own">You set up</span><code class="own">ZUPLO_MCP_BASE_URL</code></span></div></div></label>
+            <label class="task"><input type="checkbox" data-task="p3-int-3"><div class="t-body"><div class="t-title">End-to-end test of all tools</div><div class="t-desc">Chat → LLM tool call → Zuplo → partner API → rendered card; verify affiliate links carry the correct tracking IDs.</div><div class="t-secrets"><span class="none">No new secrets - exercises all keys above.</span></div></div></label>
+          </div>
+          <div class="gate"><strong>Exit gate:</strong> all 8 servers respond through Zuplo, the LLM picks the right tool, results render as cards, and affiliate links are correctly tagged.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secrets & credentials register -->
+    <section>
+      <div class="container">
+        <p class="kicker">Reference</p>
+        <h2>Secrets &amp; Credentials Register</h2>
+        <p class="sub">Every key, secret, and credential the build needs. The <strong>Origin</strong> column is the one to read first: <span class="pill pill-own">You set up</span> values you create or generate yourself; <span class="pill pill-ext">Get externally</span> keys you must obtain from a third party or the client. The <strong>Type</strong> column marks sensitivity - <span class="pill pill-secret">Secret</span> values go in a secret manager, <span class="pill pill-config">Config</span> values are non-sensitive but still env vars.</p>
+        <div class="card">
+          <table class="sec-table">
+            <thead>
+              <tr><th>Variable</th><th>Origin</th><th>Type</th><th>What it is &amp; where it comes from</th></tr>
+            </thead>
+            <tbody>
+              <tr class="grp"><td colspan="4">Platform &amp; deployment</td></tr>
+              <tr><td><code>ZUPLO_API_KEY</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Generated in your Zuplo account → project settings. Used by the Zuplo CLI / git deploy.</td></tr>
+              <tr><td><code>ZUPLO_PROJECT_NAME</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Name you choose for the Zuplo gateway project.</td></tr>
+              <tr><td><code>ZUPLO_GATEWAY_API_KEY</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Service key you generate so the chat layer can call the Zuplo gateway.</td></tr>
+              <tr><td><code>ZUPLO_MCP_BASE_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Public base URL of your deployed Zuplo MCP gateway.</td></tr>
+
+              <tr class="grp"><td colspan="4">Keycloak - identity</td></tr>
+              <tr><td><code>KEYCLOAK_ADMIN_USER</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Admin console username - you choose it at deployment.</td></tr>
+              <tr><td><code>KEYCLOAK_ADMIN_PASSWORD</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Admin console password - you choose it at deployment.</td></tr>
+              <tr><td><code>KEYCLOAK_BASE_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Public URL of your Keycloak instance.</td></tr>
+              <tr><td><code>KEYCLOAK_REALM</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Realm name you choose, e.g. <code>emerico-commerce</code>.</td></tr>
+              <tr><td><code>KEYCLOAK_ISSUER_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">OIDC issuer URL for your realm; used to validate the <code>iss</code> claim.</td></tr>
+              <tr><td><code>KEYCLOAK_JWKS_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">JWKS endpoint of your realm; from the realm's OpenID config.</td></tr>
+              <tr><td><code>KEYCLOAK_TIER_CLAIM</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Name of the JWT claim carrying the user tier - set by the protocol mapper you create.</td></tr>
+              <tr><td><code>KC_FRONTEND_CLIENT_ID</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Public OIDC client ID you create for the Vercel frontend (PKCE, no secret).</td></tr>
+              <tr><td><code>KC_LITELLM_CLIENT_ID</code> / <code>_SECRET</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Resource-server client for LiteLLM - the secret is generated by your Keycloak when you create the client.</td></tr>
+              <tr><td><code>KC_MEMORY_CLIENT_ID</code> / <code>_SECRET</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Resource-server client for the memory API - secret generated by your Keycloak.</td></tr>
+              <tr><td><code>KC_ZUPLO_CLIENT_ID</code> / <code>_SECRET</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Resource-server client for the Zuplo gateway - secret generated by your Keycloak.</td></tr>
+
+              <tr class="grp"><td colspan="4">LiteLLM - LLM proxy</td></tr>
+              <tr><td><code>LITELLM_MASTER_KEY</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Master admin key - you generate a strong random value.</td></tr>
+              <tr><td><code>LITELLM_SALT_KEY</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Salt that encrypts stored credentials - you generate it once.</td></tr>
+              <tr><td><code>LITELLM_DATABASE_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Postgres connection string for LiteLLM key/log storage - provisioned with your Elestio deployment.</td></tr>
+              <tr><td><code>LITELLM_UI_USERNAME</code> / <code>_PASSWORD</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Credentials you choose to protect the LiteLLM admin UI.</td></tr>
+              <tr><td><code>LITELLM_JWT_AUDIENCE</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Expected <code>aud</code> claim value - you decide it.</td></tr>
+              <tr><td><code>SELF_HOSTED_LLM_BASE_URL</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Endpoint of the client's self-hosted model. <strong>Request from Emerico.</strong></td></tr>
+              <tr><td><code>SELF_HOSTED_LLM_API_KEY</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">API key for the self-hosted model. <strong>Request from Emerico.</strong></td></tr>
+
+              <tr class="grp"><td colspan="4">MongoDB Atlas - memory</td></tr>
+              <tr><td><code>ATLAS_API_PUBLIC_KEY</code> / <code>_PRIVATE_KEY</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Programmatic API key pair you generate inside your own Atlas account (optional if cluster is created manually).</td></tr>
+              <tr><td><code>MONGODB_DB_USER</code> / <code>_PASSWORD</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Least-privilege database user you create in Atlas.</td></tr>
+              <tr><td><code>MONGODB_URI</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Full Atlas connection string (embeds the DB user &amp; password you created).</td></tr>
+              <tr><td><code>MONGODB_DB_NAME</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Database name you choose for the memory collections.</td></tr>
+              <tr><td><code>MEMORY_API_PORT</code> / <code>MEMORY_API_BASE_URL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Port and public base URL of the memory API service you build.</td></tr>
+              <tr><td><code>MEMORY_JWT_AUDIENCE</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-config">Config</span></td><td class="where">Expected <code>aud</code> claim value for the memory API - you decide it.</td></tr>
+
+              <tr class="grp"><td colspan="4">Partner APIs - dropshipping</td></tr>
+              <tr><td><code>ALIEXPRESS_APP_KEY</code> / <code>_APP_SECRET</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">App credentials issued by the AliExpress Open Platform developer console.</td></tr>
+              <tr><td><code>ALIEXPRESS_TRACKING_ID</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">AliExpress affiliate tracking ID / PID - required for commission attribution.</td></tr>
+              <tr><td><code>BIGBUY_API_KEY</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">REST API key issued by the BigBuy account dashboard.</td></tr>
+              <tr><td><code>CJ_EMAIL</code></td><td><span class="pill pill-own">You set up</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Your CJDropshipping account email (you chose it when registering).</td></tr>
+              <tr><td><code>CJ_API_KEY</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">API key issued by CJDropshipping; used to obtain an access token.</td></tr>
+              <tr><td><code>CJ_ACCESS_TOKEN</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Short-lived token returned by the CJDropshipping API (refreshed from the API key).</td></tr>
+
+              <tr class="grp"><td colspan="4">Partner APIs - travel &amp; events</td></tr>
+              <tr><td><code>TRAVELPAYOUTS_API_TOKEN</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">API token issued by the Travelpayouts dashboard.</td></tr>
+              <tr><td><code>TRAVELPAYOUTS_MARKER</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Affiliate marker issued by Travelpayouts - injected into deep links for commission.</td></tr>
+              <tr><td><code>TICKETMASTER_API_KEY</code> / <code>_API_SECRET</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Discovery API consumer key/secret from the Ticketmaster developer portal.</td></tr>
+              <tr><td><code>TICKETMASTER_AFFILIATE_ID</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Affiliate / partner ID issued by Ticketmaster for tracked deep links.</td></tr>
+              <tr><td><code>EVENTBRITE_API_TOKEN</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">OAuth / private token from the Eventbrite developer account.</td></tr>
+              <tr><td><code>EVENTBRITE_AFFILIATE_CODE</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Affiliate code issued by Eventbrite, appended to event deep links.</td></tr>
+              <tr><td><code>VIATOR_API_KEY</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Partner API key - requires an approved Viator affiliate account.</td></tr>
+              <tr><td><code>VIATOR_PARTNER_ID</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Partner / campaign ID issued by Viator for tracked deep links.</td></tr>
+              <tr><td><code>STUBHUB_CLIENT_ID</code> / <code>_CLIENT_SECRET</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">OAuth credentials from the StubHub developer / partner program.</td></tr>
+              <tr><td><code>STUBHUB_AFFILIATE_ID</code></td><td><span class="pill pill-ext">Get externally</span></td><td><span class="pill pill-secret">Secret</span></td><td class="where">Affiliate ID issued by StubHub for tracked ticket deep links.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <h3>Operator credentials - not env vars</h3>
+          <p>The <strong>Elestio account</strong> and the <strong>Zuplo account</strong> are single dashboard logins (email + password, ideally with 2FA) that a person uses to deploy and manage services. They are <em>not</em> application secrets and do not belong in any <code>.env</code> - keep them in a password manager / shared vault. Deployment here is the manual one-click flow, so no <code>ELESTIO_*</code> env var is needed at all. (If deployment is later automated via CI / Terraform, add a single <code>ELESTIO_API_TOKEN</code> secret for that.)</p>
+        </div>
+        <div class="note">
+          <h3>Handling rules</h3>
+          <p><span class="pill pill-ext">Get externally</span> items are the procurement risk - request the <strong>self-hosted LLM URL/key</strong> from Emerico and apply for the <strong>partner API keys and affiliate IDs</strong> at project kickoff, since several affiliate programs need account approval. Store every <span class="pill pill-secret">Secret</span> (regardless of origin) in Elestio / Zuplo environment secrets or a dedicated secret manager - never in the codebase. Commit a <code>.env.example</code> listing all variables with placeholder values only.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sequencing -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Order</p>
+        <h2>Sequencing</h2>
+        <p class="sub">Phase 1 is the hard dependency. Phases 2 and 3 are independent of each other and can be parallelized with enough team capacity.</p>
+        <div class="grid-3">
+          <div class="item"><h3>Phase 1 - first</h3><p>Keycloak is the dependency for everything; LiteLLM is the user-facing critical path. Nothing tests end-to-end until this works.</p></div>
+          <div class="item"><h3>Phase 2 - parallel</h3><p>Memory depends only on Keycloak JWT validation. It can be built alongside Phase 3.</p></div>
+          <div class="item"><h3>Phase 3 - parallel</h3><p>MCP servers depend on Keycloak auth and a confirmed tool-calling LLM. Independent of memory.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Risks -->
+    <section>
+      <div class="container">
+        <p class="kicker">Watch List</p>
+        <h2>Risks &amp; Open Questions</h2>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>Risk / Question</th><th>Severity</th><th>Impact &amp; mitigation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="risk">Does the self-hosted LLM support tool/function calling well?</td><td><span class="sev sev-high">High</span></td><td class="impact">If not, Phase 3's entire MCP value collapses. Confirm during Phase 1 before committing to Phase 3.</td></tr>
+              <tr><td class="risk">Self-hosted LLM API shape (OpenAI-compatible vs custom)</td><td><span class="sev sev-med">Medium</span></td><td class="impact">Determines LiteLLM provider configuration effort. Clarify with the client early.</td></tr>
+              <tr><td class="risk">OpenAPI spec quality varies per partner</td><td><span class="sev sev-med">Medium</span></td><td class="impact">Messy specs require manual tool definition. Mitigated by building cleanest-spec partners first.</td></tr>
+              <tr><td class="risk">Affiliate API approvals are gated and slow</td><td><span class="sev sev-med">Medium</span></td><td class="impact">Apply for partner API keys and affiliate IDs at project kickoff, not at Phase 3.</td></tr>
+              <tr><td class="risk">Zuplo plan tier must support MCP</td><td><span class="sev sev-med">Medium</span></td><td class="impact">Blocking for Phase 3. Confirm the plan before starting.</td></tr>
+              <tr><td class="risk">Cross-user memory leakage</td><td><span class="sev sev-high">High</span></td><td class="impact">Highest-severity security risk. Mitigated by enforced JWT-scoping middleware and adversarial testing.</td></tr>
+              <tr><td class="risk">End-to-end latency stacks up</td><td><span class="sev sev-med">Medium</span></td><td class="impact">Memory + LLM + tool hops add up. Co-locate Atlas with Elestio and keep memory queries indexed.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testing & DoD -->
+    <section class="alt">
+      <div class="container">
+        <p class="kicker">Verification</p>
+        <h2>Testing Strategy &amp; Definition of Done</h2>
+        <div class="grid-2">
+          <div class="card card-body checklist">
+            <h3 style="margin:0 0 8px; font-size:14px;">Testing strategy</h3>
+            <ul>
+              <li>Phase 1 - valid token passes, invalid/expired rejected; rate limits trigger at the right tier thresholds.</li>
+              <li>Phase 2 - memory persists across turns; long-term preferences affect later answers; cross-user access attempt fails.</li>
+              <li>Phase 3 - each of the 8 servers tested through Zuplo; LLM selects correct tools; cards render; affiliate links tagged.</li>
+              <li>Integration - the full request lifecycle exercised under each user tier.</li>
+            </ul>
+          </div>
+          <div class="card card-body checklist">
+            <h3 style="margin:0 0 8px; font-size:14px;">Release conditions</h3>
+            <ul>
+              <li>All three components live and verified end-to-end in production.</li>
+              <li>Rate limiting and auth policies applied and tested across all components.</li>
+              <li>Full source code and configuration delivered to the client repository.</li>
+              <li>Technical documentation for all three components delivered.</li>
+              <li>Knowledge-transfer session completed with the client.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p><strong style="color:white;">Emerico AI Infrastructure - Implementation Plan &amp; Tracker</strong></p>
+      <p>Engineering reference. Task progress is stored locally in your browser and is not shared.</p>
+      <p class="tag">© TechUp Consulting</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = "emerico-infra-plan-progress-v1";
+      var state = {};
+      try { state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch (e) { state = {}; }
+
+      var boxes = Array.prototype.slice.call(document.querySelectorAll("input[data-task]"));
+
+      function save() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      }
+
+      function refresh() {
+        var total = boxes.length, done = 0;
+        boxes.forEach(function (b) { if (b.checked) done++; });
+        var pct = total ? Math.round((done / total) * 100) : 0;
+        document.getElementById("overallPct").textContent = pct + "%";
+        document.getElementById("overallBar").style.width = pct + "%";
+        document.getElementById("overallCount").textContent = done + " of " + total + " tasks complete";
+
+        document.querySelectorAll(".phase").forEach(function (phase) {
+          var pBoxes = Array.prototype.slice.call(phase.querySelectorAll("input[data-task]"));
+          var pDone = 0;
+          pBoxes.forEach(function (b) { if (b.checked) pDone++; });
+          var pPct = pBoxes.length ? Math.round((pDone / pBoxes.length) * 100) : 0;
+          phase.querySelector("[data-phase-pct]").textContent = pPct + "%";
+          phase.querySelector("[data-phase-bar]").style.width = pPct + "%";
+        });
+      }
+
+      boxes.forEach(function (b) {
+        var id = b.getAttribute("data-task");
+        if (state[id]) b.checked = true;
+        b.addEventListener("change", function () {
+          state[id] = b.checked;
+          save();
+          refresh();
+        });
+      });
+
+      window.resetAll = function () {
+        if (!confirm("Reset all task progress?")) return;
+        state = {};
+        save();
+        boxes.forEach(function (b) { b.checked = false; });
+        refresh();
+      };
+
+      refresh();
+    })();
+  </script>
+
+</body>
+</html>
