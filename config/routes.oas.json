@@ -1,11 +1,96 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Emerico MCP Gateway",
+    "title": "Emerico AI Gateway",
     "version": "1.0.0",
-    "description": "8 MCP tool servers for dropshipping and travel/events. All routes require a valid Keycloak JWT."
+    "description": "LiteLLM proxy + 8 MCP tool servers for dropshipping and travel/events. All routes require a valid Keycloak JWT."
   },
   "paths": {
+
+    "/v1/chat/completions": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "post": {
+        "summary": "Chat completions (LiteLLM proxy)",
+        "operationId": "litellm-chat-completions",
+        "description": "Proxies to LiteLLM /v1/chat/completions. Keycloak JWT validated here, master key injected for LiteLLM.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/litellm-proxy)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "responses": {
+          "200": { "description": "Chat completion response from LiteLLM" },
+          "401": { "description": "Missing or invalid Keycloak JWT" }
+        }
+      }
+    },
+
+    "/v1/models": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "get": {
+        "summary": "List available models (LiteLLM proxy)",
+        "operationId": "litellm-list-models",
+        "description": "Proxies to LiteLLM /v1/models.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/litellm-proxy)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "responses": {
+          "200": { "description": "List of available models" },
+          "401": { "description": "Missing or invalid Keycloak JWT" }
+        }
+      }
+    },
+
+    "/v1/completions": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "post": {
+        "summary": "Text completions (LiteLLM proxy)",
+        "operationId": "litellm-completions",
+        "description": "Proxies to LiteLLM /v1/completions.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/litellm-proxy)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "responses": {
+          "200": { "description": "Text completion response" },
+          "401": { "description": "Missing or invalid Keycloak JWT" }
+        }
+      }
+    },
+
+    "/v1/embeddings": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "post": {
+        "summary": "Embeddings (LiteLLM proxy)",
+        "operationId": "litellm-embeddings",
+        "description": "Proxies to LiteLLM /v1/embeddings.",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/litellm-proxy)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "responses": {
+          "200": { "description": "Embeddings response" },
+          "401": { "description": "Missing or invalid Keycloak JWT" }
+        }
+      }
+    },
+
     "/dropshipping/aliexpress/search": {
       "x-zuplo-path": {
         "pathMode": "open-api"

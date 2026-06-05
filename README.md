@@ -15,10 +15,10 @@ All three components share a dedicated Keycloak instance (deployed on Elestio, s
 | Keycloak realm config | Done - `keycloak/realm-export.json` | Pending - needs Elestio managed service |
 | LiteLLM proxy config | Done - `litellm/litellm_config.yaml` | Pending - needs Elestio managed service |
 | Memory API | Done - `memory-api/` | Pending - needs MongoDB Atlas URI + VPS |
-| Zuplo MCP servers | Not started | Not started |
+| Zuplo MCP servers (8) | Done - `zuplo/` | Pending - needs Zuplo project setup |
 
 Phase 1 (Keycloak + LiteLLM) is a hard dependency - nothing tests end-to-end without it.
-Phase 2 (Memory API) and Phase 3 (Zuplo MCP) can proceed independently once Phase 1 is live.
+Phase 2 (Memory API) and Phase 3 (Zuplo MCP) code is complete and ready to deploy once blockers are resolved.
 
 ## Structure
 
@@ -36,7 +36,11 @@ memory-api/
   Dockerfile            - Multi-stage Docker build
   package.json
   tsconfig.json
-zuplo/                  - Not created yet (Phase 3)
+zuplo/
+  modules/              - TypeScript handlers for all 8 partner APIs
+    shared/             - Shared types and affiliate URL tagging utilities
+  routes.oas.json       - Route definitions with JWT policy config
+  README.md             - Step-by-step Zuplo deployment guide
 ```
 
 ## Getting Started
@@ -72,12 +76,15 @@ docker run -d -p 3001:3001 --env-file ../.env emerico-memory-api
 
 ### 4. Phase 3 - Zuplo MCP Servers
 
-Not started. Will be built and deployed directly on Zuplo's platform (zuplo.com). No VPS required.
+Code is complete in `zuplo/`. Follow `zuplo/README.md` to create a Zuplo project and deploy.
+Requires `KEYCLOAK_ISSUER_URL`, `KEYCLOAK_JWKS_URL`, and all partner API keys set in `.env` first.
 
 ## Reference Docs
 
 - `docs/ai-infrastructure-dev-spec.html` - Full developer spec (blueprint)
 - `docs/ai-infrastructure-implementation-guide.md` - Implementation reference
+- `keycloak/SETUP.md` - Step-by-step Keycloak and LiteLLM deployment on Elestio
+- `zuplo/README.md` - Zuplo project setup and deployment guide
 - `docs/ai-infrastructure-implementation-plan.html` - Interactive progress tracker
 - `docs/emerico-platform-integration.md` - How this project connects to the Commerce team's work
 

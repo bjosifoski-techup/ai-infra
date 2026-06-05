@@ -237,7 +237,13 @@
   },
 
   "smtpServer": {
-    "_comment": "Configure your SMTP settings here for email verification and password reset. Leave empty if not set up yet."
+    "host": "172.17.0.1",
+    "port": "25",
+    "from": "keycloak-acorreai-u73333.vm.elestio.app@vm.elestio.app",
+    "fromDisplayName": "Emerico Commerce",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
   },
 
   "eventsEnabled": true,
