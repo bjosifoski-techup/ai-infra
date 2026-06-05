@@ -9,7 +9,7 @@
         "options": {
           "issuerUrl": "$env(KEYCLOAK_ISSUER_URL)",
           "audience": "$env(LITELLM_JWT_AUDIENCE)",
-          "jwksUrl": "$env(KEYCLOAK_JWKS_URL)"
+          "jwkUrl": "$env(KEYCLOAK_JWKS_URL)"
         }
       }
     }
