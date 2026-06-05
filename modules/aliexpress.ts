@@ -4,20 +4,29 @@
 // Required env vars: ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET, ALIEXPRESS_TRACKING_ID
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { createHmac } from "crypto";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
 import { tagAliExpressUrl } from "./shared/affiliate.js";
 
 const API_BASE = "https://api-sg.aliexpress.com/sync";
 
-function sign(params: Record<string, string>, appSecret: string): string {
+// Web Crypto API replacement for Node.js createHmac — works on Zuplo's edge runtime
+async function sign(params: Record<string, string>, appSecret: string): Promise<string> {
   const sorted = Object.keys(params)
     .sort()
     .map((k) => `${k}${params[k]}`)
     .join("");
-  return createHmac("sha256", appSecret)
-    .update(sorted)
-    .digest("hex")
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(appSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
     .toUpperCase();
 }
 
@@ -60,7 +69,7 @@ export default async function handler(
     ...(body.maxPrice !== undefined ? { max_sale_price: String(body.maxPrice * 100) } : {}),
   };
 
-  params.sign = sign(params, appSecret);
+  params.sign = await sign(params, appSecret);
 
   const formData = new URLSearchParams(params);
   const res = await fetch(API_BASE, {
