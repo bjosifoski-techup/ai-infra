@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "policies": [
+    {
+      "name": "keycloak-jwt-auth",
+      "policyType": "open-id-jwt-auth-inbound",
+      "handler": {
+        "export": "OpenIdJwtInboundPolicy",
+        "module": "@zuplo/runtime",
+        "options": {
+          "issuerUrl": "$env(KEYCLOAK_ISSUER_URL)",
+          "audience": "$env(LITELLM_JWT_AUDIENCE)",
+          "jwksUrl": "$env(KEYCLOAK_JWKS_URL)"
+        }
+      }
+    }
+  ]
+}
