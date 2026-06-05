@@ -1,4 +1,4 @@
-# Emerico AI Infrastructure
+# Emerico AI Infrastructure | Ai-Infra
 
 Standalone AI infrastructure layer extending the Emerico AI Commerce Platform with three components:
 
