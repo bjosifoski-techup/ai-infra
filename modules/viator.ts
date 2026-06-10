@@ -1,14 +1,21 @@
 // Viator experience and tour search via Viator Partner API.
 // Docs: https://docs.viator.com/partner-api/technical/
 //
-// Required env vars: VIATOR_API_KEY, VIATOR_PARTNER_ID
+// Required env vars: VIATOR_API_KEY
+// Optional env vars: VIATOR_SANDBOX (set to "true" to use sandbox URL)
+//                    VIATOR_PARTNER_ID (for affiliate link tagging)
+//
+// NOTE on keys:
+//   Sandbox key → set VIATOR_SANDBOX=true  → uses https://api.sandbox.viator.com/partner
+//   Production key → leave VIATOR_SANDBOX unset → uses https://api.viator.com/partner
+//
+// This module uses the /search/freetext endpoint (works on both sandbox and production)
+// rather than /products/search which requires a numeric destinationId and production access.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ExperienceResult, ToolResponse } from "./shared/types.js";
 import { tagViatorUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
-
-const API_BASE = "https://api.viator.com/partner";
 
 export default async function handler(
   request: ZuploRequest,
@@ -19,6 +26,11 @@ export default async function handler(
   if (!apiKey) {
     return errorResponse("Viator credentials not configured", 503);
   }
+
+  const isSandbox = getenv("VIATOR_SANDBOX") === "true";
+  const API_BASE = isSandbox
+    ? "https://api.sandbox.viator.com/partner"
+    : "https://api.viator.com/partner";
 
   let body: {
     destination: string;
@@ -36,52 +48,59 @@ export default async function handler(
     return errorResponse("destination is required", 400);
   }
 
+  // Combine destination and optional query into a single search term.
+  // /search/freetext works on both sandbox and production without needing a numeric destinationId.
+  const searchTerm = body.query
+    ? `${body.query} ${body.destination}`
+    : body.destination;
+
+  const pageSize = Math.min(body.pageSize ?? 10, 30);
+
   const searchPayload = {
-    filtering: {
-      destination: body.destination,
-      ...(body.query ? { freeText: body.query } : {}),
-    },
-    sorting: {
-      sort: "TRAVELER_RATING",
-      order: "DESCENDING",
-    },
-    pagination: {
-      start: 1,
-      count: Math.min(body.pageSize ?? 10, 30),
-    },
+    searchTerm,
+    searchTypes: [
+      {
+        searchType: "PRODUCTS",
+        pagination: {
+          offset: 0,
+          limit: pageSize,
+        },
+      },
+    ],
     currency: body.currency ?? "USD",
   };
 
-  const res = await fetch(`${API_BASE}/products/search`, {
+  const res = await fetch(`${API_BASE}/search/freetext`, {
     method: "POST",
     headers: {
       "exp-api-key": apiKey,
       "Accept": "application/json;version=2.0",
       "Content-Type": "application/json",
-      "Accept-Language": "en-US",
+      "Accept-Language": "en",
     },
     body: JSON.stringify(searchPayload),
   });
 
   if (res.status === 401) {
-    return errorResponse("Viator API key invalid", 502);
+    return errorResponse("Viator API key invalid or expired", 502);
   }
 
   if (!res.ok) {
-    return errorResponse(`Viator API error: ${res.status}`, 502);
+    const errText = await res.text().catch(() => "");
+    return errorResponse(`Viator API error: ${res.status} ${errText}`, 502);
   }
 
   const data = await res.json() as any;
-  const products: any[] = data?.products ?? [];
+  const products: any[] = data?.products?.results ?? [];
 
   const results: ExperienceResult[] = products.map((p: any) => {
-    const price = p.pricing?.summary?.fromPrice;
+    const price = p.pricing?.summary?.fromPrice ?? p.pricing?.fromPrice;
 
     return {
       id: p.productCode ?? "",
       title: p.title ?? "",
       destination: body.destination,
-      price: price ?? 0,
+      price: typeof price === "number" ? price : parseFloat(price ?? "0") || 0,
       currency: body.currency ?? "USD",
       duration: p.duration?.fixedDurationInMinutes
         ? `${p.duration.fixedDurationInMinutes} min`
@@ -91,13 +110,14 @@ export default async function handler(
       url: tagViatorUrl(
         `https://www.viator.com/tours/${body.destination.replace(/\s+/g, "-")}/${p.productCode}`
       ),
-      imageUrl: p.images?.[0]?.variants?.[0]?.url,
+      imageUrl: p.images?.[0]?.variants?.find((v: any) => v.width >= 400)?.url
+        ?? p.images?.[0]?.variants?.[0]?.url,
     };
   });
 
   const response: ToolResponse<ExperienceResult> = {
     results,
-    total: data?.totalCount ?? results.length,
+    total: data?.products?.totalCount ?? results.length,
     source: "viator",
   };
 
