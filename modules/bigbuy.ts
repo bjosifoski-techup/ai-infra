@@ -7,7 +7,11 @@ import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
 import { getenv } from "./shared/env.js";
 
-const API_BASE = "https://api.bigbuy.eu/rest";
+// Set BIGBUY_SANDBOX=true in env when using the sandbox key (api.sandbox.bigbuy.eu).
+// Remove or set to false when a production key is provided.
+const API_BASE = (getenv("BIGBUY_SANDBOX") === "true")
+  ? "https://api.sandbox.bigbuy.eu/rest"
+  : "https://api.bigbuy.eu/rest";
 
 export default async function handler(
   request: ZuploRequest,
