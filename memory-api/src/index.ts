@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { requireAuth } from './middleware/auth';
 import shortTermRouter from './routes/shortTerm';
 import longTermRouter from './routes/longTerm';
+import shoppingRouter from './routes/shopping';
 import { swaggerSpec } from './swagger';
 
 // ---------------------------------------------------------------------------
@@ -43,6 +44,7 @@ app.get('/health', (_req, res) => {
 // All memory routes require a valid Keycloak JWT
 app.use('/short-term', requireAuth, shortTermRouter);
 app.use('/long-term', requireAuth, longTermRouter);
+app.use('/shopping', requireAuth, shoppingRouter);
 
 // 404 handler
 app.use((_req, res) => {
