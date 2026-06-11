@@ -1,13 +1,11 @@
 // CJDropshipping product search via CJDropshipping API v2.
 // Docs: https://developers.cjdropshipping.com/api2.0/v1
 //
-// Required env vars: CJ_API_KEY, CJ_ACCESS_TOKEN
+// Required env vars: CJ_API_KEY (permanent — never changes)
 //
-// NOTE: CJ uses a short-lived access token. If requests start returning 401,
-// the token has expired. CJ tokens can be refreshed via:
-//   POST https://developers.cjdropshipping.com/api2.0/v1/authentication/refreshAccessToken
-//   Body: { "refreshToken": "<your_refresh_token>" }
-// For now, we use the long-lived access token from env directly.
+// The module auto-generates and caches the access token using the API key.
+// Token is refreshed automatically when it expires or when a 401 is received.
+// No manual token management required.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
@@ -15,13 +13,47 @@ import { getenv } from "./shared/env.js";
 
 const API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
+// Module-level token cache — persists across requests within the same worker instance.
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+async function getAccessToken(apiKey: string): Promise<string> {
+  const now = Date.now();
+
+  if (cachedToken && now < tokenExpiresAt) {
+    return cachedToken;
+  }
+
+  const res = await fetch(`${API_BASE}/authentication/getAccessToken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`CJ token fetch failed: ${res.status}`);
+  }
+
+  const data = await res.json() as any;
+
+  if (!data.result || !data.data?.accessToken) {
+    throw new Error(`CJ token fetch failed: ${data.message ?? "unknown error"}`);
+  }
+
+  cachedToken = data.data.accessToken;
+  // Cache for 5 months (token valid ~6 months) to refresh well before expiry
+  tokenExpiresAt = now + 150 * 24 * 60 * 60 * 1000;
+
+  return cachedToken!;
+}
+
 export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const accessToken = getenv("CJ_ACCESS_TOKEN");
+  const apiKey = getenv("CJ_API_KEY");
 
-  if (!accessToken) {
+  if (!apiKey) {
     return errorResponse("CJDropshipping credentials not configured", 503);
   }
 
@@ -36,20 +68,34 @@ export default async function handler(
     return errorResponse("query is required", 400);
   }
 
+  let accessToken: string;
+  try {
+    accessToken = await getAccessToken(apiKey);
+  } catch (e: any) {
+    return errorResponse(`CJDropshipping auth failed: ${e.message}`, 502);
+  }
+
   const url = new URL(`${API_BASE}/product/list`);
   url.searchParams.set("pageNum", String(body.pageNum ?? 1));
   url.searchParams.set("pageSize", String(Math.min(body.pageSize ?? 10, 20)));
   url.searchParams.set("productNameEn", body.query);
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      "CJ-Access-Token": accessToken,
-      "Content-Type": "application/json",
-    },
+  let res = await fetch(url.toString(), {
+    headers: { "CJ-Access-Token": accessToken },
   });
 
+  // Token may have been invalidated externally — force refresh once and retry
   if (res.status === 401) {
-    return errorResponse("CJ access token expired or invalid - refresh token in Zuplo env vars", 502);
+    cachedToken = null;
+    tokenExpiresAt = 0;
+    try {
+      accessToken = await getAccessToken(apiKey);
+    } catch (e: any) {
+      return errorResponse(`CJDropshipping re-auth failed: ${e.message}`, 502);
+    }
+    res = await fetch(url.toString(), {
+      headers: { "CJ-Access-Token": accessToken },
+    });
   }
 
   if (!res.ok) {
