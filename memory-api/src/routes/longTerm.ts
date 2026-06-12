@@ -10,7 +10,9 @@ const auth = (req: Request) => req as unknown as AuthenticatedRequest;
 router.get('/', async (req, res: Response) => {
   const { userId } = auth(req);
   const memory = await memoryService.getLongTermMemory(userId);
-  res.json(memory ?? { userId, preferences: {}, conversationSummaries: [], purchaseHistory: [] });
+  const doc = memory ?? { userId, preferences: {}, conversationSummaries: [], purchaseHistory: [], cartActivity: [] };
+  if (!doc.cartActivity) (doc as any).cartActivity = [];
+  res.json(doc);
 });
 
 // PATCH /long-term/preferences
@@ -38,6 +40,50 @@ router.post('/summaries', async (req, res: Response) => {
   }
 
   await memoryService.appendSummary(userId, summary.trim());
+  res.status(201).json({ ok: true });
+});
+
+// POST /long-term/cart-activity
+router.post('/cart-activity', async (req, res: Response) => {
+  const { userId } = auth(req);
+  const { source, productId, productName, variantId, price, currency, thumbnail, addedAt } =
+    req.body as {
+      source: string;
+      productId: string;
+      productName: string;
+      variantId?: string | null;
+      price: number;
+      currency: string;
+      thumbnail?: string | null;
+      addedAt?: string;
+    };
+
+  if (!source || !productId || !productName || price == null || !currency) {
+    res.status(400).json({ error: 'Missing required fields: source, productId, productName, price, currency' });
+    return;
+  }
+  if (typeof price !== 'number' || price < 0) {
+    res.status(400).json({ error: 'price must be a non-negative number' });
+    return;
+  }
+
+  const parsedDate = addedAt ? new Date(addedAt) : new Date();
+  if (isNaN(parsedDate.getTime())) {
+    res.status(400).json({ error: 'addedAt must be a valid ISO date string' });
+    return;
+  }
+
+  await memoryService.recordCartActivity(userId, {
+    source,
+    productId,
+    productName,
+    variantId: variantId ?? null,
+    price,
+    currency,
+    thumbnail: thumbnail ?? null,
+    addedAt: parsedDate,
+  });
+
   res.status(201).json({ ok: true });
 });
 

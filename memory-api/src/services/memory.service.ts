@@ -4,6 +4,7 @@ import {
   IPreferences,
   IConversationSummary,
   IPurchaseEvent,
+  ICartActivityRecord,
 } from '../models/LongTermMemory';
 
 // ---------------------------------------------------------------------------
@@ -126,4 +127,40 @@ export async function recordPurchase(
     { $push: { purchaseHistory: purchase } },
     { upsert: true, new: true },
   );
+}
+
+/**
+ * Upsert a cart-add signal in the user's long-term memory.
+ * Re-adding the same productId bumps addedAt instead of appending a duplicate.
+ * The pre-save hook keeps the array capped at 50.
+ */
+export async function recordCartActivity(
+  userId: string,
+  record: ICartActivityRecord,
+): Promise<void> {
+  // Try to update an existing entry for the same product first
+  const updated = await LongTermMemory.findOneAndUpdate(
+    { userId, 'cartActivity.productId': record.productId },
+    {
+      $set: {
+        'cartActivity.$.addedAt': record.addedAt,
+        'cartActivity.$.price': record.price,
+        'cartActivity.$.productName': record.productName,
+        'cartActivity.$.thumbnail': record.thumbnail ?? null,
+      },
+    },
+    { new: true },
+  );
+
+  if (updated) return;
+
+  // No existing entry — push a new one and enforce cap via save
+  const doc = await LongTermMemory.findOneAndUpdate(
+    { userId },
+    { $push: { cartActivity: record } },
+    { upsert: true, new: true },
+  );
+  if (doc && doc.cartActivity.length > 50) {
+    await doc.save();
+  }
 }

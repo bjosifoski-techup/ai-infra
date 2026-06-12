@@ -22,11 +22,23 @@ export interface IPurchaseEvent {
   purchasedAt: Date;
 }
 
+export interface ICartActivityRecord {
+  source: string;
+  productId: string;
+  productName: string;
+  variantId?: string | null;
+  price: number;
+  currency: string;
+  thumbnail?: string | null;
+  addedAt: Date;
+}
+
 export interface ILongTermMemory extends Document {
   userId: string;
   preferences: IPreferences;
   conversationSummaries: IConversationSummary[];
   purchaseHistory: IPurchaseEvent[];
+  cartActivity: ICartActivityRecord[];
   updatedAt: Date;
   createdAt: Date;
 }
@@ -61,6 +73,20 @@ const PurchaseEventSchema = new Schema<IPurchaseEvent>(
   { _id: false },
 );
 
+const CartActivityRecordSchema = new Schema<ICartActivityRecord>(
+  {
+    source: { type: String, required: true },
+    productId: { type: String, required: true },
+    productName: { type: String, required: true },
+    variantId: { type: String, default: null },
+    price: { type: Number, required: true },
+    currency: { type: String, required: true },
+    thumbnail: { type: String, default: null },
+    addedAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const LongTermMemorySchema = new Schema<ILongTermMemory>(
   {
     // One document per user - userId is the natural key
@@ -74,6 +100,10 @@ const LongTermMemorySchema = new Schema<ILongTermMemory>(
       type: [PurchaseEventSchema],
       default: [],
     },
+    cartActivity: {
+      type: [CartActivityRecordSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -83,12 +113,18 @@ const LongTermMemorySchema = new Schema<ILongTermMemory>(
 // Index leading with userId (unique already creates one, but explicit for clarity)
 LongTermMemorySchema.index({ userId: 1 });
 
-// Cap summaries at 50 most recent
 const SUMMARY_CAP = 50;
+const CART_ACTIVITY_CAP = 50;
+
 LongTermMemorySchema.pre('save', function (next) {
   if (this.conversationSummaries.length > SUMMARY_CAP) {
     this.conversationSummaries = this.conversationSummaries.slice(
       this.conversationSummaries.length - SUMMARY_CAP,
+    );
+  }
+  if (this.cartActivity.length > CART_ACTIVITY_CAP) {
+    this.cartActivity = this.cartActivity.slice(
+      this.cartActivity.length - CART_ACTIVITY_CAP,
     );
   }
   next();
