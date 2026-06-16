@@ -8,7 +8,6 @@
         "module": "$import(@zuplo/runtime)",
         "options": {
           "issuerUrl": "$env(KEYCLOAK_ISSUER_URL)",
-          "audience": "$env(LITELLM_JWT_AUDIENCE)",
           "jwkUrl": "$env(KEYCLOAK_JWKS_URL)"
         }
       }

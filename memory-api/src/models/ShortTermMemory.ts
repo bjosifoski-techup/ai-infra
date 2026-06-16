@@ -1,8 +1,14 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+export interface IToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
 export interface IMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  toolCalls?: IToolCall[];
   timestamp: Date;
 }
 
@@ -14,6 +20,14 @@ export interface IShortTermMemory extends Document {
   createdAt: Date;
 }
 
+const ToolCallSchema = new Schema(
+  {
+    name:      { type: String, required: true },
+    arguments: { type: Schema.Types.Mixed, default: {} },
+  },
+  { _id: false },
+);
+
 const MessageSchema = new Schema<IMessage>(
   {
     role: {
@@ -21,7 +35,8 @@ const MessageSchema = new Schema<IMessage>(
       enum: ['user', 'assistant', 'system'],
       required: true,
     },
-    content: { type: String, required: true },
+    content:   { type: String, required: true },
+    toolCalls: { type: [ToolCallSchema], required: false },
     timestamp: { type: Date, default: Date.now },
   },
   { _id: false },

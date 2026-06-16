@@ -14,9 +14,6 @@ if (!process.env.KEYCLOAK_JWKS_URL) {
 if (!process.env.KEYCLOAK_ISSUER_URL) {
   throw new Error('KEYCLOAK_ISSUER_URL is not set');
 }
-if (!process.env.MEMORY_JWT_AUDIENCE) {
-  throw new Error('MEMORY_JWT_AUDIENCE is not set');
-}
 
 const jwksClient = new JwksClient({
   jwksUri: process.env.KEYCLOAK_JWKS_URL,
@@ -67,7 +64,6 @@ export async function requireAuth(
     decoded = jwt.verify(token, publicKey, {
       algorithms: ['RS256'],
       issuer: process.env.KEYCLOAK_ISSUER_URL,
-      audience: process.env.MEMORY_JWT_AUDIENCE,
     }) as JwtPayload;
   } catch {
     res.status(401).json({ error: 'Token validation failed' });

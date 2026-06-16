@@ -25,7 +25,11 @@ router.get('/:sessionId', async (req, res: Response) => {
 router.post('/:sessionId/messages', async (req, res: Response) => {
   const { userId } = auth(req);
   const { sessionId } = req.params;
-  const { role, content } = req.body as { role: string; content: string };
+  const { role, content, toolCalls } = req.body as {
+    role: string;
+    content: string;
+    toolCalls?: Array<{ name: string; arguments: Record<string, unknown> }>;
+  };
 
   if (!role || !content) {
     res.status(400).json({ error: 'role and content are required' });
@@ -43,6 +47,7 @@ router.post('/:sessionId/messages', async (req, res: Response) => {
   await memoryService.appendMessage(userId, sessionId, {
     role: role as 'user' | 'assistant' | 'system',
     content: content.trim(),
+    ...(Array.isArray(toolCalls) && toolCalls.length > 0 ? { toolCalls } : {}),
   });
 
   res.status(201).json({ ok: true });
