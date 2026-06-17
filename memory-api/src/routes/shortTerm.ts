@@ -27,27 +27,29 @@ router.post('/:sessionId/messages', async (req, res: Response) => {
   const { sessionId } = req.params;
   const { role, content, toolCalls } = req.body as {
     role: string;
-    content: string;
+    content?: string;
     toolCalls?: Array<{ name: string; arguments: Record<string, unknown> }>;
   };
 
-  if (!role || !content) {
-    res.status(400).json({ error: 'role and content are required' });
+  if (!role) {
+    res.status(400).json({ error: 'role is required' });
     return;
   }
   if (!['user', 'assistant', 'system'].includes(role)) {
     res.status(400).json({ error: 'role must be user, assistant, or system' });
     return;
   }
-  if (typeof content !== 'string' || content.trim().length === 0) {
-    res.status(400).json({ error: 'content must be a non-empty string' });
+  const hasContent  = typeof content === 'string' && content.trim().length > 0;
+  const hasToolCalls = Array.isArray(toolCalls) && toolCalls.length > 0;
+  if (!hasContent && !hasToolCalls) {
+    res.status(400).json({ error: 'content or toolCalls is required' });
     return;
   }
 
   await memoryService.appendMessage(userId, sessionId, {
     role: role as 'user' | 'assistant' | 'system',
-    content: content.trim(),
-    ...(Array.isArray(toolCalls) && toolCalls.length > 0 ? { toolCalls } : {}),
+    content: typeof content === 'string' ? content.trim() : '',
+    ...(hasToolCalls ? { toolCalls } : {}),
   });
 
   res.status(201).json({ ok: true });

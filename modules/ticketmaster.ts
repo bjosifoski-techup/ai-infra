@@ -51,16 +51,22 @@ export default async function handler(
   if (body.endDate) url.searchParams.set("endDateTime", `${body.endDate}T23:59:59Z`);
 
   const res = await fetch(url.toString());
+  const resBody = await res.text().catch(() => "");
 
   if (res.status === 401) {
-    return errorResponse("Ticketmaster API key invalid", 502);
+    return errorResponse(`Ticketmaster API key invalid — ${resBody}`, 502);
+  }
+
+  if (res.status === 429) {
+    return errorResponse("Ticketmaster rate limit exceeded — try again in a few seconds", 429);
   }
 
   if (!res.ok) {
-    return errorResponse(`Ticketmaster API error: ${res.status}`, 502);
+    return errorResponse(`Ticketmaster API error: ${res.status} — ${resBody}`, 502);
   }
 
-  const data = await res.json() as any;
+  let data: any;
+  try { data = JSON.parse(resBody); } catch { data = {}; }
   const events: any[] = data?._embedded?.events ?? [];
 
   const results: EventResult[] = events.map((e: any) => {

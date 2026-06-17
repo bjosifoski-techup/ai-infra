@@ -35,7 +35,7 @@ const MessageSchema = new Schema<IMessage>(
       enum: ['user', 'assistant', 'system'],
       required: true,
     },
-    content:   { type: String, required: true },
+    content:   { type: String, default: '' },
     toolCalls: { type: [ToolCallSchema], required: false },
     timestamp: { type: Date, default: Date.now },
   },

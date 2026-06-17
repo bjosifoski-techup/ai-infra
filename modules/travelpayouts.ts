@@ -43,9 +43,22 @@ export async function flightsHandler(
     return errorResponse("origin, destination and departureDate are required", 400);
   }
 
+  // Normalise to IATA airport/city code (3 uppercase letters).
+  // Reject anything that looks like a full city name to fail fast with a useful message.
+  const origin      = body.origin.trim().toUpperCase();
+  const destination = body.destination.trim().toUpperCase();
+  if (origin.length > 4 || destination.length > 4) {
+    return errorResponse(
+      `origin and destination must be IATA airport codes (e.g. JFK, CDG), got: "${body.origin}", "${body.destination}"`,
+      400,
+    );
+  }
+
   const url = new URL(`${FLIGHTS_BASE}/prices_for_dates`);
-  url.searchParams.set("origin", body.origin.toUpperCase());
-  url.searchParams.set("destination", body.destination.toUpperCase());
+  url.searchParams.set("origin", origin);
+  url.searchParams.set("destination", destination);
+  // Pass token both as query param and header — some Aviasales v3 endpoints prefer one or the other.
+  url.searchParams.set("token", apiToken);
   url.searchParams.set("departure_at", body.departureDate);
   if (body.returnDate) url.searchParams.set("return_at", body.returnDate);
   url.searchParams.set("currency", body.currency ?? "USD");
@@ -58,7 +71,8 @@ export async function flightsHandler(
   });
 
   if (!res.ok) {
-    return errorResponse(`Travelpayouts flights API error: ${res.status}`, 502);
+    const errBody = await res.text().catch(() => "");
+    return errorResponse(`Travelpayouts flights API error: ${res.status} — ${errBody}`, 502);
   }
 
   const data = await res.json() as any;
@@ -127,7 +141,8 @@ export async function hotelsHandler(
   const res = await fetch(url.toString());
 
   if (!res.ok) {
-    return errorResponse(`Travelpayouts hotels API error: ${res.status}`, 502);
+    const errBody = await res.text().catch(() => "");
+    return errorResponse(`Travelpayouts hotels API error: ${res.status} — ${errBody}`, 502);
   }
 
   const data = await res.json() as any;
