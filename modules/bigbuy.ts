@@ -37,12 +37,11 @@ export default async function handler(
   const pageSize = Math.min(body.pageSize ?? 10, 100);
   const language = body.language ?? "en";
 
-  // BigBuy product search endpoint
-  const url = new URL(`${API_BASE}/catalog/products.json`);
-  url.searchParams.set("language", language);
-  url.searchParams.set("search", body.query);
-  url.searchParams.set("limit", String(pageSize));
-  url.searchParams.set("offset", "0");
+  // BigBuy product text-search endpoint
+  const url = new URL(`${API_BASE}/catalog/searchproducts.json`);
+  url.searchParams.set("q", body.query);
+  url.searchParams.set("isoCode", language);
+  url.searchParams.set("pageSize", String(pageSize));
 
   const res = await fetch(url.toString(), {
     headers: {

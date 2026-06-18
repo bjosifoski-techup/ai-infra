@@ -17,11 +17,11 @@ const API_BASE = "https://api-sg.aliexpress.com/sync";
 
 // Feed fallback — maps query keywords to the closest curated DS feed.
 const FEED_ROUTES: Array<{ pattern: RegExp; feed: string }> = [
-  { pattern: /earbuds?|headphones?|earphones?|airpods?|tws|speaker|audio/i, feed: "AEB_ PhoneAccessories_EG" },
-  { pattern: /phone|smartphone|iphone|android|mobile|charging|charger|cable|screen.protector/i, feed: "AEB_ PhoneAccessories_EG" },
-  { pattern: /laptop|computer|keyboard|mouse|monitor|tablet|usb|ssd|ram|cpu|gaming/i, feed: "AEB_ ComputerAccessories_EG" },
+  { pattern: /earbuds?|headphones?|earphones?|airpods?|tws|speaker|audio/i, feed: "AEB_PhoneAccessories_EG" },
+  { pattern: /phone|smartphone|iphone|android|mobile|charging|charger|cable|screen.protector/i, feed: "AEB_PhoneAccessories_EG" },
+  { pattern: /laptop|computer|keyboard|mouse|monitor|tablet|usb|ssd|ram|cpu|gaming/i, feed: "AEB_ComputerAccessories_EG" },
   { pattern: /home|kitchen|garden|furniture|lamp|lighting|decor|pillow|curtain|tool/i, feed: "AEB_US_Home&Garden_TopSellers" },
-  { pattern: /summer|swimwear|bikini|beach|sunglasses|sandals/i, feed: "AEB_ SummerProducts_EG" },
+  { pattern: /summer|swimwear|bikini|beach|sunglasses|sandals/i, feed: "AEB_SummerProducts_EG" },
 ];
 const DEFAULT_FEED = "AEB_i69_FullCategory_TopSellers_20241225";
 
