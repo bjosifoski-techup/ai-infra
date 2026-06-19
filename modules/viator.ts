@@ -92,24 +92,27 @@ export default async function handler(
   const products: any[] = data?.products?.results ?? [];
 
   const results: AffiliateCard[] = products.map((p: any) => {
-    const duration = p.duration?.fixedDurationInMinutes
-      ? `${p.duration.fixedDurationInMinutes} min`
-      : p.duration?.variableDurationFromMinutes
-        ? `${p.duration.variableDurationFromMinutes}-${p.duration.variableDurationToMinutes} min`
-        : undefined;
+    // Prefer Viator's own canonical product URL — fabricating a slug from the
+    // user's query produces a 403 ("Access temporarily restricted") on viator.com.
+    const rawUrl: string =
+      p.productUrl
+      ?? p.webURL
+      ?? `https://www.viator.com/searchResults/all?text=${encodeURIComponent(p.title ?? "")}`;
 
-    const deepLinkUrl = tagViatorUrl(
-      `https://www.viator.com/tours/${body.destination.replace(/\s+/g, "-")}/${p.productCode}`
-    );
+    // dateOrVenue is intentionally omitted when the freetext payload carries no
+    // per-product venue or schedule. We never echo body.destination — when chat
+    // misroutes a product query here, that field is the user's query string.
+    const primaryDestinationName: string | undefined =
+      p.primaryDestinationName ?? p.destinations?.find((d: any) => d?.primary)?.name;
 
     return {
       kind: "affiliate",
       provider: "viator",
       title: p.title ?? "",
-      dateOrVenue: [body.destination, duration].filter(Boolean).join(" · ") || undefined,
+      dateOrVenue: primaryDestinationName || undefined,
       imageUrl: p.images?.[0]?.variants?.find((v: any) => v.width >= 400)?.url
         ?? p.images?.[0]?.variants?.[0]?.url,
-      deepLinkUrl,
+      deepLinkUrl: tagViatorUrl(rawUrl),
     };
   });
 
