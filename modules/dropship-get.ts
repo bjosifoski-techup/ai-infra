@@ -42,10 +42,11 @@ async function getAliExpress(
     method:         "aliexpress.ds.product.get",
     sign_method:    "sha256",
     timestamp,
-    session:        accessToken,
-    product_id:     sourceId,
-    local_country:  "US",
-    local_language: "EN",
+    session:          accessToken,
+    product_id:       sourceId,
+    ship_to_country:  "US",
+    local_country:    "US",
+    local_language:   "EN",
   };
   params.sign = await aeSign(params, appSecret);
 
