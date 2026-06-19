@@ -4,7 +4,7 @@
 // Required env vars: TICKETMASTER_API_KEY, TICKETMASTER_AFFILIATE_ID
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
+import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
 import { tagTicketmasterUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
 
@@ -46,7 +46,6 @@ export default async function handler(
 
   if (body.city) url.searchParams.set("city", body.city);
   if (body.countryCode) url.searchParams.set("countryCode", body.countryCode);
-  // Ticketmaster date format: 2026-01-01T00:00:00Z
   if (body.startDate) url.searchParams.set("startDateTime", `${body.startDate}T00:00:00Z`);
   if (body.endDate) url.searchParams.set("endDateTime", `${body.endDate}T23:59:59Z`);
 
@@ -69,25 +68,27 @@ export default async function handler(
   try { data = JSON.parse(resBody); } catch { data = {}; }
   const events: any[] = data?._embedded?.events ?? [];
 
-  const results: EventResult[] = events.map((e: any) => {
+  const results: AffiliateCard[] = events.map((e: any) => {
     const venue = e._embedded?.venues?.[0];
-    const priceRange = e.priceRanges?.[0];
+    const date = e.dates?.start?.localDate ?? "";
+    const venueName = venue?.name ?? "";
+    const city = venue?.city?.name ?? body.city ?? "";
+
+    const dateOrVenue = [date, [venueName, city].filter(Boolean).join(", ")]
+      .filter(Boolean)
+      .join(" · ");
 
     return {
-      id: e.id,
-      name: e.name,
-      date: e.dates?.start?.localDate ?? "",
-      venue: venue?.name ?? "",
-      city: venue?.city?.name ?? body.city ?? "",
-      url: tagTicketmasterUrl(e.url ?? ""),
+      kind: "affiliate",
+      provider: "ticketmaster",
+      title: e.name,
+      dateOrVenue: dateOrVenue || undefined,
       imageUrl: e.images?.[0]?.url,
-      priceRange: priceRange
-        ? `${priceRange.currency} ${priceRange.min} - ${priceRange.max}`
-        : undefined,
+      deepLinkUrl: tagTicketmasterUrl(e.url ?? ""),
     };
   });
 
-  const response: ToolResponse<EventResult> = {
+  const response: ToolResponse<AffiliateCard> = {
     results,
     total: data?.page?.totalElements ?? results.length,
     source: "ticketmaster",

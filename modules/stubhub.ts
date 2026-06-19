@@ -7,7 +7,7 @@
 // For production, consider caching the token until it expires.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
+import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
 import { tagStubHubUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
 
@@ -91,19 +91,23 @@ export default async function handler(
   const data = await res.json() as any;
   const events: any[] = data?.events ?? [];
 
-  const results: EventResult[] = events.map((e: any) => ({
-    id: String(e.id ?? ""),
-    name: e.name ?? "",
-    date: e.eventDateLocal ?? "",
-    venue: e.venue?.name ?? "",
-    city: e.venue?.city ?? body.city ?? "",
-    url: tagStubHubUrl(e.webURI ? `https://www.stubhub.com${e.webURI}` : ""),
-    priceRange: e.ticketInfo?.minListPrice
-      ? `${e.ticketInfo.currencyCode} ${e.ticketInfo.minListPrice}+`
-      : undefined,
-  }));
+  const results: AffiliateCard[] = events.map((e: any) => {
+    const venueName = e.venue?.name ?? "";
+    const city = e.venue?.city ?? body.city ?? "";
+    const dateOrVenue = [e.eventDateLocal, [venueName, city].filter(Boolean).join(", ")]
+      .filter(Boolean)
+      .join(" · ");
 
-  const response: ToolResponse<EventResult> = {
+    return {
+      kind: "affiliate",
+      provider: "stubhub",
+      title: e.name ?? "",
+      dateOrVenue: dateOrVenue || undefined,
+      deepLinkUrl: tagStubHubUrl(e.webURI ? `https://www.stubhub.com${e.webURI}` : ""),
+    };
+  });
+
+  const response: ToolResponse<AffiliateCard> = {
     results,
     total: data?.numFound ?? results.length,
     source: "stubhub",

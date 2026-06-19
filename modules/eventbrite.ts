@@ -15,7 +15,7 @@
 // recommended alternative — it has a full public search API with no restrictions.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { errorResponse, jsonResponse, EventResult, ToolResponse } from "./shared/types.js";
+import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
 import { tagEventbriteUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
 
@@ -76,7 +76,6 @@ export default async function handler(
   eventsUrl.searchParams.set("expand", "venue");
   eventsUrl.searchParams.set("page_size", String(Math.min(body.pageSize ?? 20, 50)));
 
-  // name_filter does a substring match on event title
   if (body.query) {
     eventsUrl.searchParams.set("name_filter", body.query);
   }
@@ -93,25 +92,27 @@ export default async function handler(
   const data = await evRes.json() as any;
   const events: any[] = data?.events ?? [];
 
-  const results: EventResult[] = events.map((e: any) => {
+  const results: AffiliateCard[] = events.map((e: any) => {
     const venue = e.venue;
-    const cost = e.ticket_availability?.minimum_ticket_price;
+    const date = e.start?.local ?? "";
+    const venueName = venue?.name ?? "";
+    const city = venue?.address?.city ?? body.location ?? "";
+
+    const dateOrVenue = [date, [venueName, city].filter(Boolean).join(", ")]
+      .filter(Boolean)
+      .join(" · ");
 
     return {
-      id: e.id,
-      name: e.name?.text ?? "",
-      date: e.start?.local ?? "",
-      venue: venue?.name ?? "",
-      city: venue?.address?.city ?? body.location ?? "",
-      url: tagEventbriteUrl(e.url ?? ""),
+      kind: "affiliate",
+      provider: "eventbrite",
+      title: e.name?.text ?? "",
+      dateOrVenue: dateOrVenue || undefined,
       imageUrl: e.logo?.url,
-      priceRange: cost
-        ? `${cost.currency} ${(cost.major_value ?? cost.value / 100).toFixed(2)}+`
-        : e.is_free ? "Free" : undefined,
+      deepLinkUrl: tagEventbriteUrl(e.url ?? ""),
     };
   });
 
-  const response: ToolResponse<EventResult> & { note?: string } = {
+  const response: ToolResponse<AffiliateCard> & { note?: string } = {
     results,
     total: data?.pagination?.object_count ?? results.length,
     source: "eventbrite",

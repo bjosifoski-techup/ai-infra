@@ -8,7 +8,7 @@
 // Each is registered as a separate route in routes.oas.json.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { errorResponse, jsonResponse, FlightResult, HotelResult, ToolResponse } from "./shared/types.js";
+import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
 import { tagTravelpayoutsUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
 
@@ -43,8 +43,6 @@ export async function flightsHandler(
     return errorResponse("origin, destination and departureDate are required", 400);
   }
 
-  // Normalise to IATA airport/city code (3 uppercase letters).
-  // Reject anything that looks like a full city name to fail fast with a useful message.
   const origin      = body.origin.trim().toUpperCase();
   const destination = body.destination.trim().toUpperCase();
   if (origin.length > 4 || destination.length > 4) {
@@ -57,7 +55,6 @@ export async function flightsHandler(
   const url = new URL(`${FLIGHTS_BASE}/prices_for_dates`);
   url.searchParams.set("origin", origin);
   url.searchParams.set("destination", destination);
-  // Pass token both as query param and header — some Aviasales v3 endpoints prefer one or the other.
   url.searchParams.set("token", apiToken);
   url.searchParams.set("departure_at", body.departureDate);
   if (body.returnDate) url.searchParams.set("return_at", body.returnDate);
@@ -78,21 +75,21 @@ export async function flightsHandler(
   const data = await res.json() as any;
   const flights: any[] = data?.data ?? [];
 
-  const results: FlightResult[] = flights.map((f: any) => {
-    const rawUrl = `https://www.aviasales.com/search/${body.origin}${body.departureDate.replace(/-/g, "")}${body.destination}1`;
+  const results: AffiliateCard[] = flights.map((f: any) => {
+    const rawUrl = `https://www.aviasales.com/search/${origin}${body.departureDate.replace(/-/g, "")}${destination}1`;
+    const dateStr = f.departure_at ?? body.departureDate;
+    const tripType = body.returnDate ? "Return" : "One-way";
+
     return {
-      origin: body.origin.toUpperCase(),
-      destination: body.destination.toUpperCase(),
-      price: f.price,
-      currency: body.currency ?? "USD",
-      departureDate: f.departure_at ?? body.departureDate,
-      returnDate: f.return_at,
-      airline: f.airline,
-      url: tagTravelpayoutsUrl(rawUrl),
+      kind: "affiliate",
+      provider: "flights",
+      title: `${origin} → ${destination}${f.airline ? ` · ${f.airline}` : ""}`,
+      dateOrVenue: `${dateStr}${body.returnDate ? ` – ${body.returnDate}` : ""} · ${tripType}`,
+      deepLinkUrl: tagTravelpayoutsUrl(rawUrl),
     };
   });
 
-  const response: ToolResponse<FlightResult> = {
+  const response: ToolResponse<AffiliateCard> = {
     results,
     total: results.length,
     source: "travelpayouts-flights",
@@ -148,21 +145,20 @@ export async function hotelsHandler(
   const data = await res.json() as any;
   const hotels: any[] = Array.isArray(data) ? data : (data?.results ?? []);
 
-  const results: HotelResult[] = hotels.map((h: any) => {
+  const results: AffiliateCard[] = hotels.map((h: any) => {
     const rawUrl = `https://www.hotellook.com/hotels?destination=${encodeURIComponent(body.destination)}&checkIn=${body.checkIn}&checkOut=${body.checkOut}&marker=${marker}`;
+
     return {
-      id: String(h.id ?? h.hotelId ?? ""),
-      name: h.hotelName ?? h.name ?? "",
-      city: body.destination,
-      stars: h.stars,
-      pricePerNight: h.priceFrom ?? h.minPrice ?? 0,
-      currency: body.currency ?? "USD",
-      url: tagTravelpayoutsUrl(rawUrl),
-      imageUrl: h.photoUrl,
+      kind: "affiliate",
+      provider: "hotels",
+      title: h.hotelName ?? h.name ?? "",
+      dateOrVenue: `${body.destination} · ${body.checkIn} – ${body.checkOut}`,
+      imageUrl: h.photos?.[0]?.url,
+      deepLinkUrl: tagTravelpayoutsUrl(rawUrl),
     };
   });
 
-  const response: ToolResponse<HotelResult> = {
+  const response: ToolResponse<AffiliateCard> = {
     results,
     total: results.length,
     source: "travelpayouts-hotels",

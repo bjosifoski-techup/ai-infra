@@ -1,58 +1,37 @@
-// Shared TypeScript interfaces used across all MCP server modules
+// Shared TypeScript interfaces used across all Zuplo module handlers.
 
+// Raw normalized product from a dropship supplier — no markup applied.
+// Consumed server-side by Commerce API, which applies markup before anything reaches the browser.
+export interface RawProduct {
+  supplier:       string;   // "aliexpress" | "cjdropshipping" | "bigbuy"
+  sourceId:       string;   // supplier's product ID
+  title:          string;
+  price:          number;   // raw supplier price — cost basis, never shown to end users
+  currency:       string;
+  imageUrl?:      string;
+  url:            string;   // direct product URL (affiliate-tagged where configured)
+  variantId?:     string;
+  variantOptions?: Record<string, string>;
+}
+
+/** @deprecated — kept only so old supplier modules compile until Task 5 removes them */
 export interface ProductResult {
-  id: string;
+  id:        string;
+  title:     string;
+  price:     number;
+  currency:  string;
+  url:       string;
+  imageUrl?: string;
+  supplier:  string;
+}
+
+export interface AffiliateCard {
+  kind: "affiliate";
+  provider: string;
   title: string;
-  price: number;
-  currency: string;
-  url: string;
+  dateOrVenue?: string;
   imageUrl?: string;
-  description?: string;
-  supplier?: string;
-}
-
-export interface EventResult {
-  id: string;
-  name: string;
-  date: string;
-  venue: string;
-  city?: string;
-  url: string;
-  imageUrl?: string;
-  priceRange?: string;
-}
-
-export interface FlightResult {
-  origin: string;
-  destination: string;
-  price: number;
-  currency: string;
-  departureDate: string;
-  returnDate?: string;
-  airline?: string;
-  url: string;
-}
-
-export interface HotelResult {
-  id: string;
-  name: string;
-  city: string;
-  stars?: number;
-  pricePerNight: number;
-  currency: string;
-  url: string;
-  imageUrl?: string;
-}
-
-export interface ExperienceResult {
-  id: string;
-  title: string;
-  destination: string;
-  price: number;
-  currency: string;
-  duration?: string;
-  url: string;
-  imageUrl?: string;
+  deepLinkUrl: string;
 }
 
 export interface ToolResponse<T> {

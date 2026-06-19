@@ -91,6 +91,83 @@
       }
     },
 
+    "/dropshipping/search": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "post": {
+        "summary": "Search dropship products (proxies Commerce API)",
+        "operationId": "dropship-product-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/dropship-search)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["q"],
+                "properties": {
+                  "q":        { "type": "string" },
+                  "pageSize": { "type": "integer", "maximum": 40, "default": 10 },
+                  "page":     { "type": "integer", "default": 1 },
+                  "minPrice": { "type": "number" },
+                  "maxPrice": { "type": "number" },
+                  "currency": { "type": "string", "default": "USD" },
+                  "locale":   { "type": "string", "default": "en" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Product results from Commerce API" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/dropshipping/get": {
+      "x-zuplo-path": { "pathMode": "open-api" },
+      "post": {
+        "summary": "Get dropship product by supplier + sourceId (proxies Commerce API)",
+        "operationId": "dropship-product-get",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "default",
+            "module": "$import(./modules/dropship-get)"
+          },
+          "policies": { "inbound": ["keycloak-jwt-auth"] }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["supplier", "sourceId"],
+                "properties": {
+                  "supplier": { "type": "string" },
+                  "sourceId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Single product from Commerce API" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" },
+          "404": { "description": "Product not found" }
+        }
+      }
+    },
+
     "/dropshipping/aliexpress/search": {
       "x-zuplo-path": {
         "pathMode": "open-api"
@@ -474,7 +551,6 @@
           "module": "@zuplo/runtime",
           "options": {
             "issuerUrl": "$env(KEYCLOAK_ISSUER_URL)",
-            "audience": "$env(LITELLM_JWT_AUDIENCE)",
             "jwksUrl": "$env(KEYCLOAK_JWKS_URL)"
           }
         }

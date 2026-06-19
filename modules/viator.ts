@@ -13,7 +13,7 @@
 // rather than /products/search which requires a numeric destinationId and production access.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
-import { errorResponse, jsonResponse, ExperienceResult, ToolResponse } from "./shared/types.js";
+import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
 import { tagViatorUrl } from "./shared/affiliate.js";
 import { getenv } from "./shared/env.js";
 
@@ -48,8 +48,6 @@ export default async function handler(
     return errorResponse("destination is required", 400);
   }
 
-  // Combine destination and optional query into a single search term.
-  // /search/freetext works on both sandbox and production without needing a numeric destinationId.
   const searchTerm = body.query
     ? `${body.query} ${body.destination}`
     : body.destination;
@@ -62,8 +60,8 @@ export default async function handler(
       {
         searchType: "PRODUCTS",
         pagination: {
-          offset: 0,
-          limit: pageSize,
+          start: 1,
+          count: pageSize,
         },
       },
     ],
@@ -93,29 +91,29 @@ export default async function handler(
   const data = await res.json() as any;
   const products: any[] = data?.products?.results ?? [];
 
-  const results: ExperienceResult[] = products.map((p: any) => {
-    const price = p.pricing?.summary?.fromPrice ?? p.pricing?.fromPrice;
+  const results: AffiliateCard[] = products.map((p: any) => {
+    const duration = p.duration?.fixedDurationInMinutes
+      ? `${p.duration.fixedDurationInMinutes} min`
+      : p.duration?.variableDurationFromMinutes
+        ? `${p.duration.variableDurationFromMinutes}-${p.duration.variableDurationToMinutes} min`
+        : undefined;
+
+    const deepLinkUrl = tagViatorUrl(
+      `https://www.viator.com/tours/${body.destination.replace(/\s+/g, "-")}/${p.productCode}`
+    );
 
     return {
-      id: p.productCode ?? "",
+      kind: "affiliate",
+      provider: "viator",
       title: p.title ?? "",
-      destination: body.destination,
-      price: typeof price === "number" ? price : parseFloat(price ?? "0") || 0,
-      currency: body.currency ?? "USD",
-      duration: p.duration?.fixedDurationInMinutes
-        ? `${p.duration.fixedDurationInMinutes} min`
-        : p.duration?.variableDurationFromMinutes
-          ? `${p.duration.variableDurationFromMinutes}-${p.duration.variableDurationToMinutes} min`
-          : undefined,
-      url: tagViatorUrl(
-        `https://www.viator.com/tours/${body.destination.replace(/\s+/g, "-")}/${p.productCode}`
-      ),
+      dateOrVenue: [body.destination, duration].filter(Boolean).join(" · ") || undefined,
       imageUrl: p.images?.[0]?.variants?.find((v: any) => v.width >= 400)?.url
         ?? p.images?.[0]?.variants?.[0]?.url,
+      deepLinkUrl,
     };
   });
 
-  const response: ToolResponse<ExperienceResult> = {
+  const response: ToolResponse<AffiliateCard> = {
     results,
     total: data?.products?.totalCount ?? results.length,
     source: "viator",
