@@ -62,7 +62,7 @@ async function searchAliExpress(
   if (accessToken) {
     method = "aliexpress.ds.text.search";
     params = {
-      access_token:   accessToken,
+      session:        accessToken,
       search_key:     q,
       page_no:        "1",
       page_size:      String(pageSize),

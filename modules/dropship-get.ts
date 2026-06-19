@@ -52,7 +52,7 @@ async function getAliExpress(
   sourceId: string
 ): Promise<RawProduct | null> {
   const query = aeBuildSignedParams(appKey, appSecret, "aliexpress.ds.product.get", {
-    access_token:   accessToken,
+    session:        accessToken,
     productId:      sourceId,
     localCountry:   "US",
     localLanguage:  "EN",
