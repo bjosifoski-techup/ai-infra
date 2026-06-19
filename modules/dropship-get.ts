@@ -11,38 +11,23 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { RawProduct, errorResponse } from "./shared/types.js";
 import { getenv } from "./shared/env.js";
-import CryptoJS from "crypto-js";
 
 // ─── AliExpress ──────────────────────────────────────────────────────────────
 
 const AE_API_URL = "https://api-sg.aliexpress.com/sync";
 
-function aeBuildSignedParams(
-  appKey: string,
-  appSecret: string,
-  method: string,
-  params: Record<string, string>
-): URLSearchParams {
-  const timestamp = Date.now().toString();
-  const allParams: Record<string, string> = {
-    app_key:     appKey,
-    method,
-    sign_method: "sha256",
-    timestamp,
-    ...params,
-  };
-
-  const sortedKeys = Object.keys(allParams).sort();
-  const stringToSign = sortedKeys.reduce(
-    (acc, key) => acc + key + allParams[key],
-    appSecret
-  ) + appSecret;
-
-  const sign = CryptoJS.HmacSHA256(stringToSign, appSecret)
-    .toString(CryptoJS.enc.Hex)
-    .toUpperCase();
-
-  return new URLSearchParams({ ...allParams, sign });
+async function aeSign(params: Record<string, string>, appSecret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const sorted = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join("");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(appSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 async function getAliExpress(
@@ -51,14 +36,23 @@ async function getAliExpress(
   accessToken: string,
   sourceId: string
 ): Promise<RawProduct | null> {
-  const query = aeBuildSignedParams(appKey, appSecret, "aliexpress.ds.product.get", {
+  const timestamp = Date.now().toString();
+  const params: Record<string, string> = {
+    app_key:        appKey,
+    method:         "aliexpress.ds.product.get",
+    sign_method:    "sha256",
+    timestamp,
     session:        accessToken,
-    productId:      sourceId,
-    localCountry:   "US",
-    localLanguage:  "EN",
-  });
+    product_id:     sourceId,
+    local_country:  "US",
+    local_language: "EN",
+  };
+  params.sign = await aeSign(params, appSecret);
 
-  const res = await fetch(`${AE_API_URL}?${query.toString()}`, {
+  const res = await fetch(AE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params).toString(),
     signal: AbortSignal.timeout(12_000),
   });
 
@@ -101,7 +95,7 @@ async function getCJToken(apiKey: string): Promise<string> {
   const res = await fetch(CJ_AUTH_URL, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ email: "", password: "", apiKey }),
+    body:    JSON.stringify({ apiKey }),
     signal:  AbortSignal.timeout(10_000),
   });
 

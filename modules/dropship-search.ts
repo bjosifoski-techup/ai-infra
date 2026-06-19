@@ -12,39 +12,23 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { RawProduct, errorResponse } from "./shared/types.js";
 import { getenv } from "./shared/env.js";
-import CryptoJS from "crypto-js";
 
 // ─── AliExpress ──────────────────────────────────────────────────────────────
 
 const AE_API_URL = "https://api-sg.aliexpress.com/sync";
 
-function aeBuildSignedParams(
-  appKey: string,
-  appSecret: string,
-  method: string,
-  params: Record<string, string>
-): URLSearchParams {
-  const timestamp = Date.now().toString();
-  const allParams: Record<string, string> = {
-    app_key:        appKey,
-    method,
-    sign_method:    "sha256",
-    timestamp,
-    ...params,
-  };
-
-  const sortedKeys = Object.keys(allParams).sort();
-  const stringToSign = sortedKeys.reduce(
-    (acc, key) => acc + key + allParams[key],
-    appSecret
-  ) + appSecret;
-
-  const sign = CryptoJS.HmacSHA256(stringToSign, appSecret)
-    .toString(CryptoJS.enc.Hex)
-    .toUpperCase();
-
-  const query = new URLSearchParams({ ...allParams, sign });
-  return query;
+async function aeSign(params: Record<string, string>, appSecret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const sorted = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join("");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(appSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 async function searchAliExpress(
@@ -56,35 +40,52 @@ async function searchAliExpress(
   minPrice?: number,
   maxPrice?: number
 ): Promise<RawProduct[]> {
+  const timestamp = Date.now().toString();
   let params: Record<string, string>;
   let method: string;
 
   if (accessToken) {
     method = "aliexpress.ds.text.search";
     params = {
-      session:        accessToken,
-      search_key:     q,
-      page_no:        "1",
-      page_size:      String(pageSize),
-      local_country:  "US",
-      local_language: "EN",
+      app_key:         appKey,
+      method,
+      sign_method:     "sha256",
+      timestamp,
+      session:         accessToken,
+      search_key:      q,
+      page_no:         "1",
+      page_size:       String(pageSize),
+      target_currency: "USD",
+      target_language: "EN",
+      sort:            "SALE_PRICE_ASC",
+      countryCode:     "US",
+      currency:        "USD",
+      local:           "en_US",
     };
     if (minPrice !== undefined) params.min_sale_price = String(minPrice * 100);
     if (maxPrice !== undefined) params.max_sale_price = String(maxPrice * 100);
   } else {
     method = "aliexpress.ds.recommend.feed.get";
     params = {
-      feed_name:    "best_seller",
-      page_no:      "1",
-      page_size:    String(pageSize),
-      country:      "US",
-      language:     "EN",
-      currency:     "USD",
+      app_key:         appKey,
+      method,
+      sign_method:     "sha256",
+      timestamp,
+      feed_name:       "best_seller",
+      page_no:         "1",
+      page_size:       String(pageSize),
+      target_currency: "USD",
+      target_language: "EN",
+      country:         "US",
     };
   }
 
-  const query = aeBuildSignedParams(appKey, appSecret, method, params);
-  const res = await fetch(`${AE_API_URL}?${query.toString()}`, {
+  params.sign = await aeSign(params, appSecret);
+
+  const res = await fetch(AE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params).toString(),
     signal: AbortSignal.timeout(12_000),
   });
 
@@ -92,25 +93,34 @@ async function searchAliExpress(
 
   const data = await res.json() as any;
 
-  let items: any[] = [];
   if (method === "aliexpress.ds.text.search") {
-    items = data?.aliexpress_ds_text_search_response?.data?.products?.traffic_product_d_t_o ?? [];
+    const inner = data?.aliexpress_ds_text_search_response?.data;
+    const items: any[] = inner?.products?.selection_search_product ?? [];
+    return items.map((p: any): RawProduct => ({
+      supplier:  "aliexpress",
+      sourceId:  String(p.itemId ?? ""),
+      title:     p.title ?? "",
+      price:     parseFloat(p.targetSalePrice ?? p.salePrice ?? "0"),
+      currency:  p.targetOriginalPriceCurrency ?? "USD",
+      imageUrl:  p.itemMainPic
+                   ? (p.itemMainPic.startsWith("//") ? `https:${p.itemMainPic}` : p.itemMainPic)
+                   : undefined,
+      url:       p.itemUrl
+                   ? (p.itemUrl.startsWith("//") ? `https:${p.itemUrl}` : p.itemUrl)
+                   : `https://www.aliexpress.com/item/${p.itemId}.html`,
+    }));
   } else {
-    items = data?.aliexpress_ds_recommend_feed_get_response?.result?.mods?.item_list?.info ?? [];
+    const items: any[] = data?.aliexpress_ds_recommend_feed_get_response?.result?.products?.traffic_product_d_t_o ?? [];
+    return items.map((p: any): RawProduct => ({
+      supplier:  "aliexpress",
+      sourceId:  String(p.product_id ?? ""),
+      title:     p.product_title ?? "",
+      price:     parseFloat(p.target_sale_price ?? p.sale_price ?? "0"),
+      currency:  p.target_sale_price_currency ?? "USD",
+      imageUrl:  p.product_main_image_url ?? undefined,
+      url:       p.product_detail_url ?? `https://www.aliexpress.com/item/${p.product_id}.html`,
+    }));
   }
-
-  return items.map((item: any): RawProduct => ({
-    supplier:  "aliexpress",
-    sourceId:  String(item.product_id ?? item.productId ?? item.item_id ?? ""),
-    title:     item.product_main_image_url
-                 ? (item.subject ?? item.title ?? item.product_title ?? "")
-                 : (item.product_title ?? item.title ?? item.subject ?? ""),
-    price:     parseFloat(item.app_sale_price ?? item.sale_price ?? item.price ?? "0"),
-    currency:  item.app_sale_price_currency ?? item.currency ?? "USD",
-    imageUrl:  item.product_main_image_url ?? item.imageUrl ?? undefined,
-    url:       item.promotion_link ?? item.product_detail_url
-                 ?? `https://www.aliexpress.com/item/${item.product_id ?? item.item_id}.html`,
-  }));
 }
 
 // ─── CJDropshipping ──────────────────────────────────────────────────────────
@@ -129,7 +139,7 @@ async function getCJToken(apiKey: string): Promise<string> {
   const res = await fetch(CJ_AUTH_URL, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ email: "", password: "", apiKey }),
+    body:    JSON.stringify({ apiKey }),
     signal:  AbortSignal.timeout(10_000),
   });
 
