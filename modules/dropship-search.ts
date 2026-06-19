@@ -181,7 +181,7 @@ async function searchCJ(
   const items: any[] = data?.data?.list ?? [];
 
   return items.map((item: any): RawProduct => ({
-    supplier:  "cjdropshipping",
+    supplier:  "cj",
     sourceId:  String(item.pid ?? item.productId ?? ""),
     title:     item.productNameEn ?? item.productName ?? "",
     price:     parseFloat(item.sellPrice ?? item.price ?? "0"),

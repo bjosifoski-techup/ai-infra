@@ -132,7 +132,7 @@ async function getCJ(apiKey: string, sourceId: string): Promise<RawProduct | nul
   if (!item) return null;
 
   return {
-    supplier:  "cjdropshipping",
+    supplier:  "cj",
     sourceId,
     title:     item.productNameEn ?? item.productName ?? "",
     price:     parseFloat(item.sellPrice ?? item.price ?? "0"),
@@ -213,7 +213,7 @@ export default async function handler(
       break;
     }
 
-    case "cjdropshipping": {
+    case "cj": {
       const apiKey = getenv("CJ_API_KEY");
       if (!apiKey) return errorResponse("CJ_API_KEY not configured", 503);
       product = await getCJ(apiKey, sourceId);

@@ -3,7 +3,7 @@
 // Raw normalized product from a dropship supplier — no markup applied.
 // Consumed server-side by Commerce API, which applies markup before anything reaches the browser.
 export interface RawProduct {
-  supplier:       string;   // "aliexpress" | "cjdropshipping" | "bigbuy"
+  supplier:       string;   // "aliexpress" | "cj" | "bigbuy"
   sourceId:       string;   // supplier's product ID
   title:          string;
   price:          number;   // raw supplier price — cost basis, never shown to end users
