@@ -143,11 +143,21 @@ async function getCJToken(apiKey: string): Promise<string> {
     signal:  AbortSignal.timeout(10_000),
   });
 
-  if (!res.ok) throw new Error(`CJ auth failed: ${res.status}`);
+  const body = await res.text().catch(() => "");
 
-  const data = await res.json() as any;
+  if (!res.ok) throw new Error(`CJ auth HTTP ${res.status}: ${body}`);
+
+  let data: any;
+  try { data = JSON.parse(body); } catch { throw new Error(`CJ auth non-JSON response: ${body.slice(0, 200)}`); }
+
+  // CJ always returns result:true on success; false means the key is rejected
+  if (!data.result) throw new Error(`CJ auth rejected: ${data.message ?? JSON.stringify(data).slice(0, 200)}`);
+
   const token = data?.data?.accessToken ?? "";
-  if (!token) throw new Error("CJ auth returned no token");
+  if (!token) throw new Error(`CJ auth succeeded but no accessToken in response: ${JSON.stringify(data).slice(0, 200)}`);
+
+  const expiryDate = data?.data?.accessTokenExpiryDate as string | undefined;
+  console.log(`[CJ] token refreshed — expiresAt=${expiryDate ?? "unknown"}, caching for ${CJ_TOKEN_TTL / 86400000}d`);
 
   cjTokenCache = { token, expiry: Date.now() + CJ_TOKEN_TTL };
   return token;
@@ -161,7 +171,8 @@ async function searchCJ(
   let token: string;
   try {
     token = await getCJToken(apiKey);
-  } catch {
+  } catch (e: any) {
+    console.error(`[CJ] auth failed, skipping supplier: ${e.message}`);
     return [];
   }
 
@@ -170,12 +181,31 @@ async function searchCJ(
   url.searchParams.set("pageNum",  "1");
   url.searchParams.set("pageSize", String(pageSize));
 
-  const res = await fetch(url.toString(), {
+  let res = await fetch(url.toString(), {
     headers: { "CJ-Access-Token": token },
     signal:  AbortSignal.timeout(12_000),
   });
 
-  if (!res.ok) return [];
+  // Token may have been invalidated server-side — force refresh once and retry
+  if (res.status === 401) {
+    console.warn("[CJ] product list returned 401, clearing cache and retrying");
+    cjTokenCache = null;
+    try {
+      token = await getCJToken(apiKey);
+    } catch (e: any) {
+      console.error(`[CJ] re-auth failed: ${e.message}`);
+      return [];
+    }
+    res = await fetch(url.toString(), {
+      headers: { "CJ-Access-Token": token },
+      signal:  AbortSignal.timeout(12_000),
+    });
+  }
+
+  if (!res.ok) {
+    console.error(`[CJ] product list HTTP ${res.status}`);
+    return [];
+  }
 
   const data = await res.json() as any;
   const items: any[] = data?.data?.list ?? [];

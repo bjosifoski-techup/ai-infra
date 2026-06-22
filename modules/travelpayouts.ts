@@ -57,7 +57,11 @@ export async function flightsHandler(
   url.searchParams.set("destination", destination);
   url.searchParams.set("token", apiToken);
   url.searchParams.set("departure_at", body.departureDate);
-  if (body.returnDate) url.searchParams.set("return_at", body.returnDate);
+  if (body.returnDate) {
+    url.searchParams.set("return_at", body.returnDate);
+  } else {
+    url.searchParams.set("one_way", "true");
+  }
   url.searchParams.set("currency", body.currency ?? "USD");
   url.searchParams.set("limit", "10");
   url.searchParams.set("sorting", "price");
@@ -67,13 +71,19 @@ export async function flightsHandler(
     headers: { "x-access-token": apiToken },
   });
 
+  const resText = await res.text().catch(() => "");
+
   if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    return errorResponse(`Travelpayouts flights API error: ${res.status} — ${errBody}`, 502);
+    return errorResponse(`Travelpayouts flights API error: ${res.status} — ${resText}`, 502);
   }
 
-  const data = await res.json() as any;
+  let data: any;
+  try { data = JSON.parse(resText); } catch { data = {}; }
+
   const flights: any[] = data?.data ?? [];
+  if (flights.length === 0) {
+    console.warn(`[flights] empty results for ${origin}→${destination} on ${body.departureDate}. success=${data?.success} raw=${resText.slice(0, 300)}`);
+  }
 
   const results: AffiliateCard[] = flights.map((f: any) => {
     const rawUrl = `https://www.aviasales.com/search/${origin}${body.departureDate.replace(/-/g, "")}${destination}1`;
