@@ -57,7 +57,7 @@ async function searchAliExpress(
       page_size:       String(pageSize),
       target_currency: "USD",
       target_language: "EN",
-      sort:            "SALE_PRICE_ASC",
+      sort:            "LAST_VOLUME_DESC",
       countryCode:     "US",
       currency:        "USD",
       local:           "en_US",
