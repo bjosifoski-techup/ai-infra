@@ -85,8 +85,19 @@ export async function flightsHandler(
     console.warn(`[flights] empty results for ${origin}→${destination} on ${body.departureDate}. success=${data?.success} raw=${resText.slice(0, 300)}`);
   }
 
+  // Aviasales slug date format: DDMM (day-then-month, zero-padded), e.g. 23 July → "2307"
+  function aviasalesDate(iso: string): string {
+    const [, , mm, dd] = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/) ?? [];
+    return `${dd ?? "01"}${mm ?? "01"}`;
+  }
+
+  const depSlug = aviasalesDate(body.departureDate);
+  const retSlug = body.returnDate ? aviasalesDate(body.returnDate) : "";
+
   const results: AffiliateCard[] = flights.map((f: any) => {
-    const rawUrl = `https://www.aviasales.com/search/${origin}${body.departureDate.replace(/-/g, "")}${destination}1`;
+    const rawUrl = body.returnDate
+      ? `https://www.aviasales.com/search/${origin}${depSlug}${destination}${retSlug}1`
+      : `https://www.aviasales.com/search/${origin}${depSlug}${destination}1`;
     const dateStr = f.departure_at ?? body.departureDate;
     const tripType = body.returnDate ? "Return" : "One-way";
 
