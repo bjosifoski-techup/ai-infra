@@ -303,6 +303,8 @@ export default async function handler(
   const cjKey    = getenv("CJ_API_KEY");
   const bbKey    = getenv("BIGBUY_API_KEY");
 
+  console.log(`[CJ] apiKey present=${!!cjKey} key=${cjKey?.slice(0, 20)}...`);
+
   // Fan out to all configured suppliers in parallel; skip unconfigured ones silently
   const tasks: Promise<RawProduct[]>[] = [];
 

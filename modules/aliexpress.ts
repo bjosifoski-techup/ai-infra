@@ -71,6 +71,8 @@ export default async function handler(
   const trackingId = getenv("ALIEXPRESS_TRACKING_ID") ?? "";
   const timestamp = Date.now().toString();
 
+  console.log(`[AliExpress-v1] accessToken present=${!!accessToken} token=${accessToken?.slice(0, 20)}... query="${body.query}"`);
+
   if (accessToken) {
     // True keyword search via aliexpress.ds.text.search
     const params: Record<string, string> = {
@@ -102,9 +104,11 @@ export default async function handler(
     }
 
     const data = await res.json() as any;
+    console.log(`[AliExpress-v1] text search raw keys=${Object.keys(data ?? {}).join(",")}`);
     const inner = data?.aliexpress_ds_text_search_response?.data;
 
     if (!inner) {
+      console.error(`[AliExpress-v1] text search no data — full response: ${JSON.stringify(data).slice(0, 300)}`);
       return errorResponse("AliExpress text search returned no data", 502);
     }
 
