@@ -6,7 +6,7 @@
 // Required env vars depend on the requested supplier:
 //   aliexpress:     ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET, ALIEXPRESS_ACCESS_TOKEN
 //   cjdropshipping: CJ_API_KEY
-//   bigbuy:         BIGBUY_API_KEY  (+ BIGBUY_SANDBOX=true for sandbox)
+//   bigbuy:         BIGBUY_API_KEY  (+ BIGBUY_ENV=sandbox for sandbox)
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { RawProduct, errorResponse } from "./shared/types.js";
@@ -16,18 +16,13 @@ import { getenv } from "./shared/env.js";
 
 const AE_API_URL = "https://api-sg.aliexpress.com/sync";
 
+// AliExpress Open Platform legacy signing: MD5(secret + sorted_kv + secret), uppercase hex.
+// Matches the Commerce API adapter that's verified in production.
 async function aeSign(params: Record<string, string>, appSecret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const sorted = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join("");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(appSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  const sortedKeys = Object.keys(params).sort();
+  const signStr = appSecret + sortedKeys.map((k) => `${k}${params[k]}`).join("") + appSecret;
+  const hash = await crypto.subtle.digest("MD5", new TextEncoder().encode(signStr));
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 async function getAliExpress(
@@ -37,16 +32,21 @@ async function getAliExpress(
   sourceId: string
 ): Promise<RawProduct | null> {
   const timestamp = Date.now().toString();
+  // Param shape mirrors the Commerce API adapter (verified in production):
+  //   access_token, snake_case product.get params, target_currency/target_language.
+  // ship_to_country is mandatory — AE returns MissingParameter without it.
   const params: Record<string, string> = {
-    app_key:        appKey,
-    method:         "aliexpress.ds.product.get",
-    sign_method:    "sha256",
+    app_key:         appKey,
+    method:          "aliexpress.ds.product.get",
     timestamp,
-    session:          accessToken,
-    product_id:       sourceId,
-    ship_to_country:  "US",
-    local_country:    "US",
-    local_language:   "EN",
+    format:          "json",
+    v:               "2.0",
+    sign_method:     "md5",
+    access_token:    accessToken,
+    product_id:      sourceId,
+    ship_to_country: "US",
+    target_currency: "USD",
+    target_language: "en",
   };
   params.sign = await aeSign(params, appSecret);
 
@@ -82,8 +82,9 @@ async function getAliExpress(
 
 // ─── CJDropshipping ──────────────────────────────────────────────────────────
 
-const CJ_AUTH_URL  = "https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken";
-const CJ_API_BASE  = "https://developers.cjdropshipping.com/api2.0/v1";
+// `.cn` host mirrors the Commerce API adapter (verified in production).
+const CJ_AUTH_URL  = "https://developers.cjdropshipping.cn/api2.0/v1/authentication/getAccessToken";
+const CJ_API_BASE  = "https://developers.cjdropshipping.cn/api2.0/v1";
 const CJ_TOKEN_TTL = 13 * 24 * 60 * 60 * 1000;
 
 let cjTokenCache: { token: string; expiry: number } | null = null;
@@ -145,16 +146,20 @@ async function getCJ(apiKey: string, sourceId: string): Promise<RawProduct | nul
 
 // ─── BigBuy ──────────────────────────────────────────────────────────────────
 
+// Env switch mirrors the Commerce API adapter (verified in production):
+// BIGBUY_ENV="sandbox" → sandbox host; anything else → production.
 function getBigBuyBase(): string {
-  return getenv("BIGBUY_SANDBOX") === "true"
+  return getenv("BIGBUY_ENV") === "sandbox"
     ? "https://api.sandbox.bigbuy.eu/rest"
     : "https://api.bigbuy.eu/rest";
 }
 
 async function getBigBuy(apiKey: string, sourceId: string): Promise<RawProduct | null> {
-  const url = `${getBigBuyBase()}/catalog/product/${encodeURIComponent(sourceId)}.json`;
+  const url = new URL(`${getBigBuyBase()}/catalog/product/${encodeURIComponent(sourceId)}.json`);
+  url.searchParams.set("isoCode", "en");
+  url.searchParams.set("_locale", "en");
 
-  const res = await fetch(url, {
+  const res = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept:        "application/json",
@@ -171,10 +176,10 @@ async function getBigBuy(apiKey: string, sourceId: string): Promise<RawProduct |
     supplier:  "bigbuy",
     sourceId,
     title:     item.name ?? item.description ?? "",
-    price:     parseFloat(String(item.retailPrice ?? item.price ?? "0")),
+    price:     parseFloat(String(item.retailPrice ?? item.lowestPrice ?? item.price ?? "0")),
     currency:  "EUR",
     imageUrl:  item.images?.[0]?.url ?? undefined,
-    url:       `https://www.bigbuy.eu/en/${sourceId}.html`,
+    url:       `https://www.bigbuy.eu/en/products/${item.sku ?? sourceId}`,
   };
 }
 

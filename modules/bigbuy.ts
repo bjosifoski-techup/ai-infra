@@ -2,16 +2,23 @@
 // Docs: https://api.bigbuy.eu/doc
 //
 // Required env vars: BIGBUY_API_KEY
+// Optional env vars: BIGBUY_ENV ("sandbox" | "production", default "production")
+//
+// Sandbox keys must go to api.sandbox.bigbuy.eu — a sandbox key sent to prod
+// returns "Invalid Token". Param shape + listProducts+client-filter pattern
+// mirrors the Commerce API adapter that's verified in production.
+// BigBuy doesn't expose free-text search; /catalog/searchproducts.json was
+// removed/deprecated. We fetch a page and substring-filter on title/category.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
 import { getenv } from "./shared/env.js";
 
-// Set BIGBUY_SANDBOX=true in env when using the sandbox key (api.sandbox.bigbuy.eu).
-// Remove or set to false when a production key is provided.
-const API_BASE = (getenv("BIGBUY_SANDBOX") === "true")
-  ? "https://api.sandbox.bigbuy.eu/rest"
-  : "https://api.bigbuy.eu/rest";
+function bigBuyBase(): string {
+  return getenv("BIGBUY_ENV") === "sandbox"
+    ? "https://api.sandbox.bigbuy.eu/rest"
+    : "https://api.bigbuy.eu/rest";
+}
 
 export default async function handler(
   request: ZuploRequest,
@@ -23,7 +30,7 @@ export default async function handler(
     return errorResponse("BigBuy credentials not configured", 503);
   }
 
-  let body: { query: string; pageSize?: number; language?: string };
+  let body: { query: string; pageSize?: number };
   try {
     body = await request.json();
   } catch {
@@ -35,18 +42,19 @@ export default async function handler(
   }
 
   const pageSize = Math.min(body.pageSize ?? 10, 100);
-  const language = body.language ?? "en";
 
-  // BigBuy product text-search endpoint
-  const url = new URL(`${API_BASE}/catalog/searchproducts.json`);
-  url.searchParams.set("q", body.query);
-  url.searchParams.set("isoCode", language);
-  url.searchParams.set("pageSize", String(pageSize));
+  // Fetch a list page; client-side substring filter — the loose-match
+  // fallback that Commerce verified works against BigBuy's sandbox.
+  const url = new URL(`${bigBuyBase()}/catalog/products.json`);
+  url.searchParams.set("isoCode",  "en");
+  url.searchParams.set("_locale",  "en");
+  url.searchParams.set("pageSize", "100");
+  url.searchParams.set("page",     "0");
 
   const res = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      Accept: "application/json",
+      Accept:        "application/json",
     },
   });
 
@@ -59,21 +67,27 @@ export default async function handler(
   }
 
   const products = await res.json() as any[];
+  const q = body.query.toLowerCase();
+  const filtered = (Array.isArray(products) ? products : []).filter((p: any) => {
+    const title = String(p.name ?? p.description ?? "").toLowerCase();
+    const cat   = String(p.categories?.[0]?.name ?? "").toLowerCase();
+    return title.includes(q) || cat.includes(q);
+  });
 
-  const results: ProductResult[] = (Array.isArray(products) ? products : []).map((p: any) => ({
-    id: String(p.id ?? p.sku ?? ""),
-    title: p.name ?? p.description ?? "",
-    price: parseFloat(p.retailPrice ?? p.price ?? "0"),
-    currency: "EUR",
-    url: `https://www.bigbuy.eu/en/${p.id ?? ""}.html`,
-    imageUrl: p.images?.[0]?.url,
+  const results: ProductResult[] = filtered.slice(0, pageSize).map((p: any) => ({
+    id:          String(p.id ?? p.sku ?? ""),
+    title:       p.name ?? p.description ?? "",
+    price:       parseFloat(p.retailPrice ?? p.lowestPrice ?? p.price ?? "0"),
+    currency:    "EUR",
+    url:         `https://www.bigbuy.eu/en/products/${p.sku ?? p.id ?? ""}`,
+    imageUrl:    p.images?.[0]?.url,
     description: p.description,
-    supplier: "BigBuy",
+    supplier:    "BigBuy",
   }));
 
   const response: ToolResponse<ProductResult> = {
     results,
-    total: results.length,
+    total:  results.length,
     source: "bigbuy",
   };
 

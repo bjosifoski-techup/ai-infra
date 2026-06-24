@@ -17,18 +17,13 @@ import { getenv } from "./shared/env.js";
 
 const AE_API_URL = "https://api-sg.aliexpress.com/sync";
 
+// AliExpress Open Platform legacy signing: MD5(secret + sorted_kv + secret), uppercase hex.
+// Matches the Commerce API adapter that's verified in production.
 async function aeSign(params: Record<string, string>, appSecret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const sorted = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join("");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(appSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  const sortedKeys = Object.keys(params).sort();
+  const signStr = appSecret + sortedKeys.map((k) => `${k}${params[k]}`).join("") + appSecret;
+  const hash = await crypto.subtle.digest("MD5", new TextEncoder().encode(signStr));
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 async function searchAliExpress(
@@ -45,38 +40,46 @@ async function searchAliExpress(
   let method: string;
 
   if (accessToken) {
+    // True keyword search via aliexpress.ds.text.search.
+    // Param shape mirrors the Commerce API adapter (verified in production):
+    //   keyWord (capital W), access_token, pageNo/pageSize (camel), language/currency/local_country.
     method = "aliexpress.ds.text.search";
     params = {
-      app_key:         appKey,
+      app_key:       appKey,
       method,
-      sign_method:     "sha256",
       timestamp,
-      session:         accessToken,
-      search_key:      q,
-      page_no:         "1",
-      page_size:       String(pageSize),
-      target_currency: "USD",
-      target_language: "EN",
-      sort:            "LAST_VOLUME_DESC",
-      countryCode:     "US",
-      currency:        "USD",
-      local:           "en_US",
+      format:        "json",
+      v:             "2.0",
+      sign_method:   "md5",
+      access_token:  accessToken,
+      keyWord:       q,
+      language:      "en",
+      currency:      "USD",
+      local_country: "US",
+      countryCode:   "US",
+      local:         "en_US",
+      pageNo:        "1",
+      pageSize:      String(pageSize),
+      sort:          "LAST_VOLUME_DESC",
     };
     if (minPrice !== undefined) params.min_sale_price = String(minPrice * 100);
     if (maxPrice !== undefined) params.max_sale_price = String(maxPrice * 100);
   } else {
+    // Trending feed fallback keeps snake_case per AE's own docs for this method.
     method = "aliexpress.ds.recommend.feed.get";
     params = {
-      app_key:         appKey,
+      app_key:     appKey,
       method,
-      sign_method:     "sha256",
       timestamp,
-      feed_name:       "best_seller",
-      page_no:         "1",
-      page_size:       String(pageSize),
-      target_currency: "USD",
-      target_language: "EN",
-      country:         "US",
+      format:      "json",
+      v:           "2.0",
+      sign_method: "md5",
+      feed_name:   "best_seller",
+      page_no:     "1",
+      page_size:   String(pageSize),
+      language:    "en",
+      currency:    "USD",
+      country:     "US",
     };
   }
 
@@ -125,8 +128,10 @@ async function searchAliExpress(
 
 // ─── CJDropshipping ──────────────────────────────────────────────────────────
 
-const CJ_AUTH_URL  = "https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken";
-const CJ_API_BASE  = "https://developers.cjdropshipping.com/api2.0/v1";
+// Host + search-endpoint shape mirror the Commerce API adapter (verified in production):
+// `.cn` host, /product/query, productName param (capital N).
+const CJ_AUTH_URL  = "https://developers.cjdropshipping.cn/api2.0/v1/authentication/getAccessToken";
+const CJ_API_BASE  = "https://developers.cjdropshipping.cn/api2.0/v1";
 const CJ_TOKEN_TTL = 13 * 24 * 60 * 60 * 1000; // 13 days (real expiry: 15 days)
 
 let cjTokenCache: { token: string; expiry: number } | null = null;
@@ -176,10 +181,10 @@ async function searchCJ(
     return [];
   }
 
-  const url = new URL(`${CJ_API_BASE}/product/list`);
-  url.searchParams.set("productNameEn", q);
-  url.searchParams.set("pageNum",  "1");
-  url.searchParams.set("pageSize", String(pageSize));
+  const url = new URL(`${CJ_API_BASE}/product/query`);
+  url.searchParams.set("productName", q);
+  url.searchParams.set("pageNum",     "1");
+  url.searchParams.set("pageSize",    String(pageSize));
 
   let res = await fetch(url.toString(), {
     headers: { "CJ-Access-Token": token },
@@ -224,9 +229,11 @@ async function searchCJ(
 
 // ─── BigBuy ──────────────────────────────────────────────────────────────────
 
+// Env switch + listProducts+client-filter pattern mirror the Commerce API
+// adapter (verified in production). BigBuy's /catalog/searchproducts.json is
+// effectively dead; the durable approach is list-then-filter on title/category.
 function getBigBuyBase(): string {
-  const sandbox = getenv("BIGBUY_SANDBOX");
-  return sandbox === "true"
+  return getenv("BIGBUY_ENV") === "sandbox"
     ? "https://api.sandbox.bigbuy.eu/rest"
     : "https://api.bigbuy.eu/rest";
 }
@@ -237,11 +244,11 @@ async function searchBigBuy(
   pageSize: number
 ): Promise<RawProduct[]> {
   const base = getBigBuyBase();
-  const url  = new URL(`${base}/catalog/searchproducts.json`);
-  url.searchParams.set("query",     q);
-  url.searchParams.set("isoCode",   "en");
-  url.searchParams.set("pageSize",  String(pageSize));
-  url.searchParams.set("pageIndex", "0");
+  const url  = new URL(`${base}/catalog/products.json`);
+  url.searchParams.set("isoCode",  "en");
+  url.searchParams.set("_locale",  "en");
+  url.searchParams.set("pageSize", "100");
+  url.searchParams.set("page",     "0");
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -256,14 +263,21 @@ async function searchBigBuy(
   const items = await res.json() as any[];
   if (!Array.isArray(items)) return [];
 
-  return items.map((item: any): RawProduct => ({
+  const ql = q.toLowerCase();
+  const filtered = items.filter((item: any) => {
+    const title = String(item.name ?? item.description ?? "").toLowerCase();
+    const cat   = String(item.categories?.[0]?.name ?? "").toLowerCase();
+    return title.includes(ql) || cat.includes(ql);
+  });
+
+  return filtered.slice(0, pageSize).map((item: any): RawProduct => ({
     supplier:  "bigbuy",
-    sourceId:  String(item.id ?? ""),
+    sourceId:  String(item.id ?? item.sku ?? ""),
     title:     item.name ?? item.description ?? "",
-    price:     parseFloat(String(item.retailPrice ?? item.price ?? "0")),
+    price:     parseFloat(String(item.retailPrice ?? item.lowestPrice ?? item.price ?? "0")),
     currency:  "EUR",
     imageUrl:  item.images?.[0]?.url ?? undefined,
-    url:       `https://www.bigbuy.eu/en/${item.id}.html`,
+    url:       `https://www.bigbuy.eu/en/products/${item.sku ?? item.id ?? ""}`,
   }));
 }
 

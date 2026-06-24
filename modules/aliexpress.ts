@@ -25,18 +25,14 @@ const FEED_ROUTES: Array<{ pattern: RegExp; feed: string }> = [
 ];
 const DEFAULT_FEED = "AEB_i69_FullCategory_TopSellers_20241225";
 
+// AliExpress Open Platform legacy signing: MD5(secret + sorted_kv + secret), uppercase hex.
+// Matches the Commerce API adapter that's verified in production; SHA-256 HMAC is the
+// newer scheme but isn't what AE accepts on the /sync endpoint for these methods.
 async function sign(params: Record<string, string>, appSecret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const sorted = Object.keys(params).sort().map((k) => `${k}${params[k]}`).join("");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(appSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(sorted));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  const sortedKeys = Object.keys(params).sort();
+  const signStr = appSecret + sortedKeys.map((k) => `${k}${params[k]}`).join("") + appSecret;
+  const hash = await crypto.subtle.digest("MD5", new TextEncoder().encode(signStr));
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 function toAbsoluteUrl(url: string): string {
@@ -74,22 +70,26 @@ export default async function handler(
   console.log(`[AliExpress-v1] accessToken present=${!!accessToken} token=${accessToken?.slice(0, 20)}... query="${body.query}"`);
 
   if (accessToken) {
-    // True keyword search via aliexpress.ds.text.search
+    // True keyword search via aliexpress.ds.text.search.
+    // Param shape mirrors the Commerce API adapter (verified in production):
+    //   keyWord (capital W), access_token, pageNo/pageSize (camel), language/currency/local_country.
     const params: Record<string, string> = {
-      app_key: appKey,
-      method: "aliexpress.ds.text.search",
+      app_key:       appKey,
+      method:        "aliexpress.ds.text.search",
       timestamp,
-      sign_method: "sha256",
-      session: accessToken,
-      search_key: body.query,
-      page_no: "1",
-      page_size: String(requestedSize),
-      target_currency: "USD",
-      target_language: "EN",
-      sort: "SALE_PRICE_ASC",
-      countryCode: "US",
-      currency: "USD",
-      local: "en_US",
+      format:        "json",
+      v:             "2.0",
+      sign_method:   "md5",
+      access_token:  accessToken,
+      keyWord:       body.query,
+      language:      "en",
+      currency:      "USD",
+      local_country: "US",
+      countryCode:   "US",
+      local:         "en_US",
+      pageNo:        "1",
+      pageSize:      String(requestedSize),
+      sort:          "LAST_VOLUME_DESC",
     };
     params.sign = await sign(params, appSecret);
 
@@ -148,20 +148,23 @@ export default async function handler(
     return jsonResponse(response);
   }
 
-  // Fallback: feed-based trending products when no access token is configured
+  // Fallback: feed-based trending products when no access token is configured.
+  // recommend.feed.get keeps snake_case params per AE's own documentation.
   const feedName = FEED_ROUTES.find((r) => r.pattern.test(body.query))?.feed ?? DEFAULT_FEED;
 
   const params: Record<string, string> = {
-    app_key: appKey,
-    method: "aliexpress.ds.recommend.feed.get",
+    app_key:     appKey,
+    method:      "aliexpress.ds.recommend.feed.get",
     timestamp,
-    sign_method: "sha256",
-    feed_name: feedName,
-    page_no: "1",
-    page_size: String(requestedSize),
-    target_currency: "USD",
-    target_language: "EN",
-    country: "US",
+    format:      "json",
+    v:           "2.0",
+    sign_method: "md5",
+    feed_name:   feedName,
+    page_no:     "1",
+    page_size:   String(requestedSize),
+    language:    "en",
+    currency:    "USD",
+    country:     "US",
   };
   params.sign = await sign(params, appSecret);
 
