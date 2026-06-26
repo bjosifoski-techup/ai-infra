@@ -64,8 +64,12 @@ async function getAliExpress(
   if (!result) return null;
 
   const priceInfo = result.ae_item_sku_info_dtos?.ae_item_sku_info_d_t_o?.[0];
+  // Prefer the discounted sale price (offer_sale_price) over the pre-discount
+  // list price (sku_price) so this matches the search path (targetSalePrice)
+  // and Commerce API's own by-id adapter. Reading sku_price returned the list
+  // price (~$21) instead of the actual sale price (~$10).
   const price = parseFloat(
-    priceInfo?.sku_price ?? result.ae_item_base_info_dto?.original_price ?? "0"
+    priceInfo?.offer_sale_price ?? priceInfo?.sku_price ?? result.ae_item_base_info_dto?.original_price ?? "0"
   );
 
   return {
