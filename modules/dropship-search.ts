@@ -131,20 +131,18 @@ async function searchAliExpress(
 
 // `.cn` host. Search is /product/list with productNameEn — this is the keyword
 // search endpoint (verified live returning 200 + products). /product/query is a
-// by-id lookup that 400s ("pid or productSku must be not empty") on a name. The
-// access token is served from ZoneCache (see shared/cj-token.ts) so we don't
-// re-auth per request and trip CJ's getAccessToken throttle (429).
+// by-id lookup that 400s ("pid or productSku must be not empty") on a name.
+// Token caching lives in shared/cj-token.ts (mirrors the Commerce API adapter).
 const CJ_API_BASE = "https://developers.cjdropshipping.cn/api2.0/v1";
 
 async function searchCJ(
   apiKey: string,
   q: string,
-  pageSize: number,
-  context: ZuploContext
+  pageSize: number
 ): Promise<RawProduct[]> {
   let token: string;
   try {
-    token = await getCJToken(apiKey, context);
+    token = await getCJToken(apiKey);
   } catch (e: any) {
     console.error(`[CJ] auth failed, skipping supplier: ${e.message}`);
     return [];
@@ -155,29 +153,44 @@ async function searchCJ(
   url.searchParams.set("pageNum",       "1");
   url.searchParams.set("pageSize",      String(pageSize));
 
-  let res = await fetch(url.toString(), {
-    headers: { "CJ-Access-Token": token },
-    signal:  AbortSignal.timeout(12_000),
-  });
-
-  // Token may have been invalidated server-side — clear cache, re-auth once, retry
-  if (res.status === 401) {
-    console.warn("[CJ] product list returned 401, clearing cache and retrying");
-    await clearCJToken(context);
-    try {
-      token = await getCJToken(apiKey, context);
-    } catch (e: any) {
-      console.error(`[CJ] re-auth failed: ${e.message}`);
-      return [];
-    }
+  let res: Response;
+  try {
     res = await fetch(url.toString(), {
       headers: { "CJ-Access-Token": token },
       signal:  AbortSignal.timeout(12_000),
     });
+  } catch (e: any) {
+    // Without this, a timeout/network throw was masked by the handler's
+    // outer .catch(() => []) and CJ appeared as "configured but contributing 0".
+    console.error(`[CJ] product list fetch threw: ${e.name} ${e.message}`);
+    return [];
+  }
+
+  // Token may have been invalidated server-side — clear cache, re-auth once, retry
+  if (res.status === 401) {
+    console.warn("[CJ] product list returned 401, clearing cache and retrying");
+    clearCJToken();
+    try {
+      token = await getCJToken(apiKey);
+    } catch (e: any) {
+      console.error(`[CJ] re-auth failed: ${e.message}`);
+      return [];
+    }
+    try {
+      res = await fetch(url.toString(), {
+        headers: { "CJ-Access-Token": token },
+        signal:  AbortSignal.timeout(12_000),
+      });
+    } catch (e: any) {
+      console.error(`[CJ] product list retry fetch threw: ${e.name} ${e.message}`);
+      return [];
+    }
   }
 
   if (!res.ok) {
-    console.error(`[CJ] product list HTTP ${res.status}`);
+    // Include CJ's body so 429 / 500 / 503 carry their own diagnostic message.
+    const body = await res.text().catch(() => "");
+    console.error(`[CJ] product list HTTP ${res.status}: ${body.slice(0, 200)}`);
     return [];
   }
 
@@ -299,7 +312,7 @@ export default async function handler(
   }
 
   if (cjKey) {
-    tasks.push(searchCJ(cjKey, body.q, perSupplier, context).catch(() => []));
+    tasks.push(searchCJ(cjKey, body.q, perSupplier).catch(() => []));
   }
 
   if (bbKey) {

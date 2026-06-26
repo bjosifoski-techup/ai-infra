@@ -9,9 +9,8 @@
 //
 // `.cn` host. Search is /product/list with productNameEn — the keyword search
 // endpoint (verified live returning 200 + products). /product/query is a by-id
-// lookup that 400s on a name. The access token is served from ZoneCache (see
-// shared/cj-token.ts) so we don't re-auth per request and trip CJ's
-// getAccessToken throttle (429).
+// lookup that 400s on a name. Token caching lives in shared/cj-token.ts and
+// mirrors the Commerce API adapter that's verified returning products.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, ProductResult, ToolResponse } from "./shared/types.js";
@@ -45,7 +44,7 @@ export default async function handler(
 
   let accessToken: string;
   try {
-    accessToken = await getCJToken(apiKey, context);
+    accessToken = await getCJToken(apiKey);
   } catch (e: any) {
     console.error(`[CJ-v1] auth failed: ${e.message}`);
     return errorResponse(`CJDropshipping auth failed: ${e.message}`, 502);
@@ -56,24 +55,43 @@ export default async function handler(
   url.searchParams.set("pageSize", String(Math.min(body.pageSize ?? 10, 20)));
   url.searchParams.set("productNameEn", body.query);
 
-  let res = await fetch(url.toString(), {
-    headers: { "CJ-Access-Token": accessToken },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      headers: { "CJ-Access-Token": accessToken },
+      signal:  AbortSignal.timeout(12_000),
+    });
+  } catch (e: any) {
+    // Timeout (AbortError) or network failure — without this, an aborted fetch
+    // produces a bodyless gateway 502 with no trace in the logs.
+    console.error(`[CJ-v1] product list fetch threw: ${e.name} ${e.message}`);
+    return errorResponse(`CJDropshipping fetch failed: ${e.name} ${e.message}`, 502);
+  }
 
   // Token may have been invalidated externally — clear cache, re-auth once, retry
   if (res.status === 401) {
-    await clearCJToken(context);
+    console.warn("[CJ-v1] product list returned 401, clearing cache and retrying");
+    clearCJToken();
     try {
-      accessToken = await getCJToken(apiKey, context);
+      accessToken = await getCJToken(apiKey);
     } catch (e: any) {
       return errorResponse(`CJDropshipping re-auth failed: ${e.message}`, 502);
     }
-    res = await fetch(url.toString(), {
-      headers: { "CJ-Access-Token": accessToken },
-    });
+    try {
+      res = await fetch(url.toString(), {
+        headers: { "CJ-Access-Token": accessToken },
+        signal:  AbortSignal.timeout(12_000),
+      });
+    } catch (e: any) {
+      console.error(`[CJ-v1] product list retry fetch threw: ${e.name} ${e.message}`);
+      return errorResponse(`CJDropshipping retry fetch failed: ${e.name} ${e.message}`, 502);
+    }
   }
 
   if (!res.ok) {
+    // Surface CJ's own message so 429 / 500 / 503 etc. don't vanish silently.
+    const body = await res.text().catch(() => "");
+    console.error(`[CJ-v1] product list HTTP ${res.status}: ${body.slice(0, 200)}`);
     return errorResponse(`CJDropshipping API error: ${res.status}`, 502);
   }
 
