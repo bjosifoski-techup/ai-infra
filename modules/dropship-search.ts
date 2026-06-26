@@ -12,6 +12,7 @@
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { RawProduct, errorResponse } from "./shared/types.js";
 import { getenv } from "./shared/env.js";
+import { getCJToken, clearCJToken } from "./shared/cj-token.js";
 
 // ─── AliExpress ──────────────────────────────────────────────────────────────
 
@@ -128,75 +129,43 @@ async function searchAliExpress(
 
 // ─── CJDropshipping ──────────────────────────────────────────────────────────
 
-// Host + search-endpoint shape mirror the Commerce API adapter (verified in production):
-// `.cn` host, /product/query, productName param (capital N).
-const CJ_AUTH_URL  = "https://developers.cjdropshipping.cn/api2.0/v1/authentication/getAccessToken";
-const CJ_API_BASE  = "https://developers.cjdropshipping.cn/api2.0/v1";
-const CJ_TOKEN_TTL = 13 * 24 * 60 * 60 * 1000; // 13 days (real expiry: 15 days)
-
-let cjTokenCache: { token: string; expiry: number } | null = null;
-
-async function getCJToken(apiKey: string): Promise<string> {
-  if (cjTokenCache && Date.now() < cjTokenCache.expiry) {
-    return cjTokenCache.token;
-  }
-
-  const res = await fetch(CJ_AUTH_URL, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ apiKey }),
-    signal:  AbortSignal.timeout(10_000),
-  });
-
-  const body = await res.text().catch(() => "");
-
-  if (!res.ok) throw new Error(`CJ auth HTTP ${res.status}: ${body}`);
-
-  let data: any;
-  try { data = JSON.parse(body); } catch { throw new Error(`CJ auth non-JSON response: ${body.slice(0, 200)}`); }
-
-  // CJ always returns result:true on success; false means the key is rejected
-  if (!data.result) throw new Error(`CJ auth rejected: ${data.message ?? JSON.stringify(data).slice(0, 200)}`);
-
-  const token = data?.data?.accessToken ?? "";
-  if (!token) throw new Error(`CJ auth succeeded but no accessToken in response: ${JSON.stringify(data).slice(0, 200)}`);
-
-  const expiryDate = data?.data?.accessTokenExpiryDate as string | undefined;
-  console.log(`[CJ] token refreshed — expiresAt=${expiryDate ?? "unknown"}, caching for ${CJ_TOKEN_TTL / 86400000}d`);
-
-  cjTokenCache = { token, expiry: Date.now() + CJ_TOKEN_TTL };
-  return token;
-}
+// `.cn` host. Search is /product/list with productNameEn — this is the keyword
+// search endpoint (verified live returning 200 + products). /product/query is a
+// by-id lookup that 400s ("pid or productSku must be not empty") on a name. The
+// access token is served from ZoneCache (see shared/cj-token.ts) so we don't
+// re-auth per request and trip CJ's getAccessToken throttle (429).
+const CJ_API_BASE = "https://developers.cjdropshipping.cn/api2.0/v1";
 
 async function searchCJ(
   apiKey: string,
   q: string,
-  pageSize: number
+  pageSize: number,
+  context: ZuploContext
 ): Promise<RawProduct[]> {
   let token: string;
   try {
-    token = await getCJToken(apiKey);
+    token = await getCJToken(apiKey, context);
   } catch (e: any) {
     console.error(`[CJ] auth failed, skipping supplier: ${e.message}`);
     return [];
   }
 
-  const url = new URL(`${CJ_API_BASE}/product/query`);
-  url.searchParams.set("productName", q);
-  url.searchParams.set("pageNum",     "1");
-  url.searchParams.set("pageSize",    String(pageSize));
+  const url = new URL(`${CJ_API_BASE}/product/list`);
+  url.searchParams.set("productNameEn", q);
+  url.searchParams.set("pageNum",       "1");
+  url.searchParams.set("pageSize",      String(pageSize));
 
   let res = await fetch(url.toString(), {
     headers: { "CJ-Access-Token": token },
     signal:  AbortSignal.timeout(12_000),
   });
 
-  // Token may have been invalidated server-side — force refresh once and retry
+  // Token may have been invalidated server-side — clear cache, re-auth once, retry
   if (res.status === 401) {
     console.warn("[CJ] product list returned 401, clearing cache and retrying");
-    cjTokenCache = null;
+    await clearCJToken(context);
     try {
-      token = await getCJToken(apiKey);
+      token = await getCJToken(apiKey, context);
     } catch (e: any) {
       console.error(`[CJ] re-auth failed: ${e.message}`);
       return [];
@@ -330,7 +299,7 @@ export default async function handler(
   }
 
   if (cjKey) {
-    tasks.push(searchCJ(cjKey, body.q, perSupplier).catch(() => []));
+    tasks.push(searchCJ(cjKey, body.q, perSupplier, context).catch(() => []));
   }
 
   if (bbKey) {
