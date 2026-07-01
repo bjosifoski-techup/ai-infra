@@ -374,6 +374,92 @@
         }
       }
     },
+    "/travel/kayak/flights/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search flights via Kayak Affiliate Network",
+        "operationId": "kayak-flights-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "flightsHandler",
+            "module": "$import(./modules/kayak)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["origin", "destination", "departureDate"],
+                "properties": {
+                  "origin": { "type": "string", "description": "IATA airport code e.g. BOS" },
+                  "destination": { "type": "string", "description": "IATA airport code e.g. JFK" },
+                  "departureDate": { "type": "string", "description": "YYYY-MM-DD" },
+                  "returnDate": { "type": "string", "description": "YYYY-MM-DD, omit for one-way" },
+                  "adults": { "type": "integer", "default": 1 },
+                  "cabin": { "type": "string", "description": "economy | premium | business | first", "default": "economy" },
+                  "currency": { "type": "string", "default": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Flight results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
+    "/travel/kayak/hotels/search": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Search hotels via Kayak Affiliate Network",
+        "operationId": "kayak-hotels-search",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "hotelsHandler",
+            "module": "$import(./modules/kayak)"
+          },
+          "policies": {
+            "inbound": ["keycloak-jwt-auth"]
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["destination", "checkIn", "checkOut"],
+                "properties": {
+                  "destination": { "type": "string", "description": "Place name (e.g. Boston) or Kayak entityKey (e.g. kplace:58075)" },
+                  "checkIn": { "type": "string", "description": "YYYY-MM-DD" },
+                  "checkOut": { "type": "string", "description": "YYYY-MM-DD" },
+                  "guests": { "type": "integer", "default": 2 },
+                  "currency": { "type": "string", "default": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Hotel results" },
+          "400": { "description": "Invalid request" },
+          "401": { "description": "JWT missing or invalid" }
+        }
+      }
+    },
     "/travel/ticketmaster/search": {
       "x-zuplo-path": {
         "pathMode": "open-api"
