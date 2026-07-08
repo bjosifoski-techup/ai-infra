@@ -1,18 +1,18 @@
-// Eventbrite event search via Eventbrite API v3.
+// Eventbrite event search via Eventbrite API v3 — public search flow.
 // Docs: https://www.eventbrite.com/platform/api
 //
-// Required env vars: EVENTBRITE_API_TOKEN
+// Required env vars: EVENTBRITE_TOKEN
 // Optional env vars: EVENTBRITE_AFFILIATE_CODE
 //
-// NOTE: Eventbrite removed /v3/events/search/ public search for third-party apps.
-// This handler uses /v3/organizations/{id}/events/ to list events created by the
-// authenticated user's organization. It also supports a text filter (name_filter).
+// This handler hits Eventbrite's public event-search endpoint (/v3/events/search/)
+// with a public-scope token. It replaces an earlier implementation that used a
+// two-step org-lookup + /organizations/{id}/events/ flow — which is org-scoped
+// and only returned the authenticated org's own events, matching what the client
+// saw ("Eventbrite returns empty") when the wrong token scope was in use.
 //
-// The org ID is discovered automatically from the token via /v3/users/me/organizations/.
-// If the org has no public events, results will be empty.
-//
-// For general public event search, Ticketmaster (/travel/ticketmaster/search) is the
-// recommended alternative — it has a full public search API with no restrictions.
+// If EVENTBRITE_TOKEN is unset, the handler falls back to the legacy env var
+// name (EVENTBRITE_API_TOKEN) so an operator mid-migration doesn't 503, but a
+// deploy-time warning is logged so we notice and finish the rename.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
@@ -25,10 +25,14 @@ export default async function handler(
   request: ZuploRequest,
   context: ZuploContext
 ): Promise<Response> {
-  const apiToken = getenv("EVENTBRITE_API_TOKEN");
+  const apiToken = getenv("EVENTBRITE_TOKEN") ?? getenv("EVENTBRITE_API_TOKEN");
 
   if (!apiToken) {
     return errorResponse("Eventbrite credentials not configured", 503);
+  }
+
+  if (!getenv("EVENTBRITE_TOKEN") && getenv("EVENTBRITE_API_TOKEN")) {
+    console.warn("[eventbrite] using legacy EVENTBRITE_API_TOKEN — rename to EVENTBRITE_TOKEN");
   }
 
   let body: {
@@ -47,76 +51,71 @@ export default async function handler(
     return errorResponse("query is required", 400);
   }
 
-  const headers = { Authorization: `Bearer ${apiToken}` };
+  const url = new URL(`${API_BASE}/events/search/`);
+  url.searchParams.set("q",           body.query);
+  url.searchParams.set("expand",      "venue");
+  url.searchParams.set("sort_by",     "date");
+  url.searchParams.set("page_size",   String(Math.min(body.pageSize ?? 20, 50)));
 
-  // Step 1: discover the authenticated organization ID
-  const orgRes = await fetch(`${API_BASE}/users/me/organizations/`, { headers });
-  if (orgRes.status === 401) {
-    return errorResponse("Eventbrite API token invalid", 502);
+  if (body.location) {
+    url.searchParams.set("location.address", body.location);
   }
-  if (!orgRes.ok) {
-    return errorResponse(`Eventbrite org lookup failed: ${orgRes.status}`, 502);
-  }
-  const orgData = await orgRes.json() as any;
-  const orgId: string | undefined = orgData?.organizations?.[0]?.id;
-
-  if (!orgId) {
-    return jsonResponse({
-      results: [],
-      total: 0,
-      source: "eventbrite",
-      note: "No Eventbrite organization found for this token. Public event search requires Ticketmaster.",
-    } as any);
-  }
-
-  // Step 2: list the org's events with optional name filter
-  const eventsUrl = new URL(`${API_BASE}/organizations/${orgId}/events/`);
-  eventsUrl.searchParams.set("status", "live");
-  eventsUrl.searchParams.set("order_by", "start_asc");
-  eventsUrl.searchParams.set("expand", "venue");
-  eventsUrl.searchParams.set("page_size", String(Math.min(body.pageSize ?? 20, 50)));
-
-  if (body.query) {
-    eventsUrl.searchParams.set("name_filter", body.query);
-  }
-
   if (body.startDate) {
-    eventsUrl.searchParams.set("start_date.range_start", `${body.startDate}T00:00:00Z`);
+    url.searchParams.set("start_date.range_start", `${body.startDate}T00:00:00Z`);
   }
 
-  const evRes = await fetch(eventsUrl.toString(), { headers });
-  if (!evRes.ok) {
-    return errorResponse(`Eventbrite events fetch failed: ${evRes.status}`, 502);
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${apiToken}` },
+  });
+
+  const resText = await res.text().catch(() => "");
+
+  if (res.status === 401) {
+    console.error(`[eventbrite] 401 — token likely wrong scope. Body: ${resText.slice(0, 200)}`);
+    return errorResponse("Eventbrite token invalid or wrong scope for public search", 502);
   }
 
-  const data = await evRes.json() as any;
+  if (res.status === 404) {
+    // Eventbrite has historically gated /events/search/ behind app approval —
+    // if the endpoint 404s or "not found"s, that's the failure mode to surface.
+    console.error(`[eventbrite] 404 — /events/search/ not available to this token. Body: ${resText.slice(0, 200)}`);
+    return errorResponse("Eventbrite public event search not available for this token", 502);
+  }
+
+  if (!res.ok) {
+    console.error(`[eventbrite] HTTP ${res.status} — ${resText.slice(0, 200)}`);
+    return errorResponse(`Eventbrite API error: ${res.status}`, 502);
+  }
+
+  let data: any;
+  try { data = JSON.parse(resText); } catch { data = {}; }
+
   const events: any[] = data?.events ?? [];
 
   const results: AffiliateCard[] = events.map((e: any) => {
-    const venue = e.venue;
-    const date = e.start?.local ?? "";
-    const venueName = venue?.name ?? "";
-    const city = venue?.address?.city ?? body.location ?? "";
+    const venue      = e.venue;
+    const date       = e.start?.local ?? "";
+    const venueName  = venue?.name ?? "";
+    const city       = venue?.address?.city ?? body.location ?? "";
 
     const dateOrVenue = [date, [venueName, city].filter(Boolean).join(", ")]
       .filter(Boolean)
       .join(" · ");
 
     return {
-      kind: "affiliate",
-      provider: "eventbrite",
-      title: e.name?.text ?? "",
+      kind:        "affiliate",
+      provider:    "eventbrite",
+      title:       e.name?.text ?? "",
       dateOrVenue: dateOrVenue || undefined,
-      imageUrl: e.logo?.url,
+      imageUrl:    e.logo?.url,
       deepLinkUrl: tagEventbriteUrl(e.url ?? ""),
     };
   });
 
-  const response: ToolResponse<AffiliateCard> & { note?: string } = {
+  const response: ToolResponse<AffiliateCard> = {
     results,
-    total: data?.pagination?.object_count ?? results.length,
+    total:  data?.pagination?.object_count ?? results.length,
     source: "eventbrite",
-    note: "Results show events from the authenticated Eventbrite organization only. For broader public event search, use the Ticketmaster tool.",
   };
 
   return jsonResponse(response);
