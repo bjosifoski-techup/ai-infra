@@ -102,7 +102,7 @@ export async function flightsHandler(
     signal: AbortSignal.timeout(15_000),
   });
   const startText = await res.text().catch(() => "");
-  if (!res.ok) return errorResponse(`Kayak flights start error: ${res.status} — ${startText.slice(0, 200)}`, 502);
+  if (!res.ok) return errorResponse(`Kayak flights start error: ${res.status} ${res.statusText} — ${(startText || "").slice(0, 200)}`, 502);
 
   let data: any;
   try { data = JSON.parse(startText); } catch { return errorResponse("Kayak flights returned non-JSON", 502); }
@@ -213,7 +213,7 @@ export async function hotelsHandler(
   for (let i = 0; i < POLL_MAX; i++) {
     const res = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
     const text = await res.text().catch(() => "");
-    if (!res.ok) return errorResponse(`Kayak hotels error: ${res.status} — ${text.slice(0, 200)}`, 502);
+    if (!res.ok) return errorResponse(`Kayak hotels error: ${res.status} ${res.statusText} — ${(text || "").slice(0, 200)}`, 502);
     try { data = JSON.parse(text); } catch { return errorResponse("Kayak hotels returned non-JSON", 502); }
     if (data.isComplete) break;
     await sleep(POLL_DELAY_MS);
