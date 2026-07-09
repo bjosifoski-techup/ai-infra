@@ -51,6 +51,18 @@ function baseHeaders(request: ZuploRequest): Record<string, string> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// On a non-OK Kayak response, dump status + body + ALL response headers to the
+// Zuplo log. For 403s the headers are the useful part — they reveal whether a
+// WAF / bot-detection layer (and which one) rejected the egress IP, since the
+// 403 body itself comes back empty.
+function logKayakFailure(label: string, res: Response, body: string): void {
+  const headers: Record<string, string> = {};
+  res.headers.forEach((v, k) => { headers[k] = v; });
+  console.error(
+    `[Kayak] ${label} HTTP ${res.status} ${res.statusText} — body=${(body || "").slice(0, 300)} — headers=${JSON.stringify(headers)}`,
+  );
+}
+
 // ─── Flights ───────────────────────────────────────────────────────────────
 
 export async function flightsHandler(
@@ -102,7 +114,10 @@ export async function flightsHandler(
     signal: AbortSignal.timeout(15_000),
   });
   const startText = await res.text().catch(() => "");
-  if (!res.ok) return errorResponse(`Kayak flights start error: ${res.status} ${res.statusText} — ${(startText || "").slice(0, 200)}`, 502);
+  if (!res.ok) {
+    logKayakFailure("flights start", res, startText);
+    return errorResponse(`Kayak flights start error: ${res.status} ${res.statusText} — ${(startText || "").slice(0, 200)}`, 502);
+  }
 
   let data: any;
   try { data = JSON.parse(startText); } catch { return errorResponse("Kayak flights returned non-JSON", 502); }
@@ -184,7 +199,11 @@ export async function hotelsHandler(
     const acUrl = `${baseUrl()}/api/affiliate/autocomplete/v1/hotels`
       + `?apiKey=${encodeURIComponent(apiKey)}&searchTerm=${encodeURIComponent(destinationKey)}`;
     const acRes = await fetch(acUrl, { headers, signal: AbortSignal.timeout(10_000) });
-    if (!acRes.ok) return errorResponse(`Kayak hotels autocomplete error: ${acRes.status}`, 502);
+    if (!acRes.ok) {
+      const acBody = await acRes.text().catch(() => "");
+      logKayakFailure("hotels autocomplete", acRes, acBody);
+      return errorResponse(`Kayak hotels autocomplete error: ${acRes.status} ${acRes.statusText} — ${(acBody || "").slice(0, 200)}`, 502);
+    }
     const ac = await acRes.json().catch(() => ({} as any));
     const first = ac.results?.[0];
     if (!first?.entityKey) {
@@ -213,7 +232,10 @@ export async function hotelsHandler(
   for (let i = 0; i < POLL_MAX; i++) {
     const res = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
     const text = await res.text().catch(() => "");
-    if (!res.ok) return errorResponse(`Kayak hotels error: ${res.status} ${res.statusText} — ${(text || "").slice(0, 200)}`, 502);
+    if (!res.ok) {
+      logKayakFailure("hotels search", res, text);
+      return errorResponse(`Kayak hotels error: ${res.status} ${res.statusText} — ${(text || "").slice(0, 200)}`, 502);
+    }
     try { data = JSON.parse(text); } catch { return errorResponse("Kayak hotels returned non-JSON", 502); }
     if (data.isComplete) break;
     await sleep(POLL_DELAY_MS);
