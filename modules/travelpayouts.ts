@@ -4,8 +4,14 @@
 //
 // Required env vars: TRAVELPAYOUTS_API_TOKEN, TRAVELPAYOUTS_MARKER
 //
-// This module exports two handlers: flightsHandler and hotelsHandler.
-// Each is registered as a separate route in routes.oas.json.
+// Public API for this module:
+//   - searchFlights(body) / searchHotels(body):
+//       Callable cores. Return ToolResponse<AffiliateCard> on success,
+//       throw on failure. Used by the merged handler in ./travel-merged.ts.
+//   - flightsHandler / hotelsHandler:
+//       Thin route wrappers — parse body, delegate to core, translate
+//       thrown errors to errorResponse. Registered directly in
+//       config/routes.oas.json.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
@@ -15,40 +21,41 @@ import { getenv } from "./shared/env.js";
 const FLIGHTS_BASE = "https://api.travelpayouts.com/aviasales/v3";
 const HOTELS_BASE = "https://engine.hotellook.com/api/v2";
 
-export async function flightsHandler(
-  request: ZuploRequest,
-  context: ZuploContext
-): Promise<Response> {
+export interface TravelpayoutsFlightInput {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate?: string;
+  adults?: number;
+  currency?: string;
+}
+
+export interface TravelpayoutsHotelInput {
+  destination: string;
+  checkIn: string;
+  checkOut: string;
+  guests?: number;
+  currency?: string;
+}
+
+// ─── Cores ─────────────────────────────────────────────────────────────────
+// Both cores throw on any failure that would previously have produced a 502/503,
+// so they compose cleanly with Promise.allSettled in the merged handler.
+// The IATA-code sanity check is here (not in the wrapper) so a merged call with
+// city names causes just Travelpayouts to reject — Kayak (which also expects
+// IATA) will still make its own attempt.
+
+export async function searchFlights(
+  body: TravelpayoutsFlightInput,
+): Promise<ToolResponse<AffiliateCard>> {
   const apiToken = getenv("TRAVELPAYOUTS_API_TOKEN");
-
-  if (!apiToken) {
-    return errorResponse("Travelpayouts credentials not configured", 503);
-  }
-
-  let body: {
-    origin: string;
-    destination: string;
-    departureDate: string;
-    returnDate?: string;
-    adults?: number;
-    currency?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Invalid JSON body", 400);
-  }
-
-  if (!body.origin || !body.destination || !body.departureDate) {
-    return errorResponse("origin, destination and departureDate are required", 400);
-  }
+  if (!apiToken) throw new Error("Travelpayouts credentials not configured");
 
   const origin      = body.origin.trim().toUpperCase();
   const destination = body.destination.trim().toUpperCase();
   if (origin.length > 4 || destination.length > 4) {
-    return errorResponse(
+    throw new Error(
       `origin and destination must be IATA airport codes (e.g. JFK, CDG), got: "${body.origin}", "${body.destination}"`,
-      400,
     );
   }
 
@@ -69,12 +76,13 @@ export async function flightsHandler(
 
   const res = await fetch(url.toString(), {
     headers: { "x-access-token": apiToken },
+    signal: AbortSignal.timeout(15_000),
   });
 
   const resText = await res.text().catch(() => "");
 
   if (!res.ok) {
-    return errorResponse(`Travelpayouts flights API error: ${res.status} — ${resText}`, 502);
+    throw new Error(`Travelpayouts flights API error: ${res.status} — ${resText.slice(0, 200)}`);
   }
 
   let data: any;
@@ -110,42 +118,20 @@ export async function flightsHandler(
     };
   });
 
-  const response: ToolResponse<AffiliateCard> = {
+  return {
     results,
     total: results.length,
     source: "travelpayouts-flights",
   };
-
-  return jsonResponse(response);
 }
 
-export async function hotelsHandler(
-  request: ZuploRequest,
-  context: ZuploContext
-): Promise<Response> {
+export async function searchHotels(
+  body: TravelpayoutsHotelInput,
+): Promise<ToolResponse<AffiliateCard>> {
   const apiToken = getenv("TRAVELPAYOUTS_API_TOKEN");
   const marker = getenv("TRAVELPAYOUTS_MARKER") ?? "";
 
-  if (!apiToken) {
-    return errorResponse("Travelpayouts credentials not configured", 503);
-  }
-
-  let body: {
-    destination: string;
-    checkIn: string;
-    checkOut: string;
-    guests?: number;
-    currency?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse("Invalid JSON body", 400);
-  }
-
-  if (!body.destination || !body.checkIn || !body.checkOut) {
-    return errorResponse("destination, checkIn and checkOut are required", 400);
-  }
+  if (!apiToken) throw new Error("Travelpayouts credentials not configured");
 
   const url = new URL(`${HOTELS_BASE}/cache.json`);
   url.searchParams.set("location", body.destination);
@@ -156,11 +142,11 @@ export async function hotelsHandler(
   url.searchParams.set("limit", "10");
   url.searchParams.set("token", apiToken);
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15_000) });
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "");
-    return errorResponse(`Travelpayouts hotels API error: ${res.status} — ${errBody}`, 502);
+    throw new Error(`Travelpayouts hotels API error: ${res.status} — ${errBody.slice(0, 200)}`);
   }
 
   const data = await res.json() as any;
@@ -179,11 +165,59 @@ export async function hotelsHandler(
     };
   });
 
-  const response: ToolResponse<AffiliateCard> = {
+  return {
     results,
     total: results.length,
     source: "travelpayouts-hotels",
   };
+}
 
-  return jsonResponse(response);
+// ─── Route wrappers ────────────────────────────────────────────────────────
+// Thin: parse body, delegate to core, translate throws into errorResponse.
+// - "credentials not configured" → 503 (preserve pre-refactor behaviour)
+// - IATA-code sanity check → 400 (was a 400 in the old handler too)
+// - anything else → 502
+
+function errorStatusFor(msg: string): number {
+  if (/credentials not configured/i.test(msg)) return 503;
+  if (/must be IATA airport codes/i.test(msg))  return 400;
+  return 502;
+}
+
+export async function flightsHandler(
+  request: ZuploRequest,
+  context: ZuploContext,
+): Promise<Response> {
+  let body: TravelpayoutsFlightInput;
+  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
+
+  if (!body.origin || !body.destination || !body.departureDate) {
+    return errorResponse("origin, destination and departureDate are required", 400);
+  }
+
+  try {
+    return jsonResponse(await searchFlights(body));
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    return errorResponse(msg, errorStatusFor(msg));
+  }
+}
+
+export async function hotelsHandler(
+  request: ZuploRequest,
+  context: ZuploContext,
+): Promise<Response> {
+  let body: TravelpayoutsHotelInput;
+  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
+
+  if (!body.destination || !body.checkIn || !body.checkOut) {
+    return errorResponse("destination, checkIn and checkOut are required", 400);
+  }
+
+  try {
+    return jsonResponse(await searchHotels(body));
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    return errorResponse(msg, errorStatusFor(msg));
+  }
 }

@@ -18,6 +18,15 @@
 // poll until it reports completion (flights: `status === "complete"`, hotels:
 // `isComplete === true`). Sandbox deep-links/images are placeholders; they
 // resolve to real monetized links in production.
+//
+// Public API for this module:
+//   - searchFlights(body, request) / searchHotels(body, request):
+//       Callable cores. Return ToolResponse<AffiliateCard> on success,
+//       throw on failure. Used by the merged handler in ./travel-merged.ts.
+//   - flightsHandler / hotelsHandler:
+//       Thin route wrappers — parse body, delegate to core, translate
+//       thrown errors to errorResponse. Registered directly in
+//       config/routes.oas.json for the /travel/kayak/... URLs.
 
 import { ZuploContext, ZuploRequest } from "@zuplo/runtime";
 import { errorResponse, jsonResponse, AffiliateCard, ToolResponse } from "./shared/types.js";
@@ -28,6 +37,24 @@ const DEFAULT_UA   = "kayakaffiliateapp";
 const POLL_MAX     = 5;
 const POLL_DELAY_MS = 1200;
 const MAX_CARDS    = 10;
+
+export interface KayakFlightInput {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate?: string;
+  adults?: number;
+  cabin?: string;
+  currency?: string;
+}
+
+export interface KayakHotelInput {
+  destination: string;
+  checkIn: string;
+  checkOut: string;
+  guests?: number;
+  currency?: string;
+}
 
 function baseUrl(): string {
   return (getenv("KAYAK_BASE_URL") ?? DEFAULT_BASE).replace(/\/+$/, "");
@@ -63,24 +90,16 @@ function logKayakFailure(label: string, res: Response, body: string): void {
   );
 }
 
-// ─── Flights ───────────────────────────────────────────────────────────────
+// ─── Cores ─────────────────────────────────────────────────────────────────
+// Both cores throw on any failure that would previously have produced a 502/503,
+// so they compose cleanly with Promise.allSettled in the merged handler.
 
-export async function flightsHandler(
+export async function searchFlights(
+  body: KayakFlightInput,
   request: ZuploRequest,
-  context: ZuploContext,
-): Promise<Response> {
+): Promise<ToolResponse<AffiliateCard>> {
   const apiKey = getenv("KAYAK_API_KEY");
-  if (!apiKey) return errorResponse("Kayak credentials not configured", 503);
-
-  let body: {
-    origin: string; destination: string; departureDate: string;
-    returnDate?: string; adults?: number; cabin?: string; currency?: string;
-  };
-  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
-
-  if (!body.origin || !body.destination || !body.departureDate) {
-    return errorResponse("origin, destination and departureDate are required", 400);
-  }
+  if (!apiKey) throw new Error("Kayak credentials not configured");
 
   const origin      = body.origin.trim().toUpperCase();
   const destination = body.destination.trim().toUpperCase();
@@ -116,11 +135,11 @@ export async function flightsHandler(
   const startText = await res.text().catch(() => "");
   if (!res.ok) {
     logKayakFailure("flights start", res, startText);
-    return errorResponse(`Kayak flights start error: ${res.status} ${res.statusText} — ${(startText || "").slice(0, 200)}`, 502);
+    throw new Error(`Kayak flights start error: ${res.status} ${res.statusText} — ${(startText || "").slice(0, 200)}`);
   }
 
   let data: any;
-  try { data = JSON.parse(startText); } catch { return errorResponse("Kayak flights returned non-JSON", 502); }
+  try { data = JSON.parse(startText); } catch { throw new Error("Kayak flights returned non-JSON"); }
 
   const searchId = data.searchId;
   const cluster  = data.cluster;
@@ -159,32 +178,19 @@ export async function flightsHandler(
     })
     .filter((c: AffiliateCard) => c.deepLinkUrl);
 
-  const response: ToolResponse<AffiliateCard> = {
+  return {
     results,
     total: data.totalCount ?? results.length,
     source: "kayak-flights",
   };
-  return jsonResponse(response);
 }
 
-// ─── Hotels ────────────────────────────────────────────────────────────────
-
-export async function hotelsHandler(
+export async function searchHotels(
+  body: KayakHotelInput,
   request: ZuploRequest,
-  context: ZuploContext,
-): Promise<Response> {
+): Promise<ToolResponse<AffiliateCard>> {
   const apiKey = getenv("KAYAK_API_KEY");
-  if (!apiKey) return errorResponse("Kayak credentials not configured", 503);
-
-  let body: {
-    destination: string; checkIn: string; checkOut: string;
-    guests?: number; currency?: string;
-  };
-  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
-
-  if (!body.destination || !body.checkIn || !body.checkOut) {
-    return errorResponse("destination, checkIn and checkOut are required", 400);
-  }
+  if (!apiKey) throw new Error("Kayak credentials not configured");
 
   const headers     = baseHeaders(request);
   const currency    = body.currency ?? "USD";
@@ -202,12 +208,13 @@ export async function hotelsHandler(
     if (!acRes.ok) {
       const acBody = await acRes.text().catch(() => "");
       logKayakFailure("hotels autocomplete", acRes, acBody);
-      return errorResponse(`Kayak hotels autocomplete error: ${acRes.status} ${acRes.statusText} — ${(acBody || "").slice(0, 200)}`, 502);
+      throw new Error(`Kayak hotels autocomplete error: ${acRes.status} ${acRes.statusText} — ${(acBody || "").slice(0, 200)}`);
     }
     const ac = await acRes.json().catch(() => ({} as any));
     const first = ac.results?.[0];
+    // No autocomplete match is a legitimate empty result, not a failure.
     if (!first?.entityKey) {
-      return jsonResponse({ results: [], total: 0, source: "kayak-hotels" });
+      return { results: [], total: 0, source: "kayak-hotels" };
     }
     destinationKey = first.entityKey;
     placeName = first.name ?? placeName;
@@ -234,9 +241,9 @@ export async function hotelsHandler(
     const text = await res.text().catch(() => "");
     if (!res.ok) {
       logKayakFailure("hotels search", res, text);
-      return errorResponse(`Kayak hotels error: ${res.status} ${res.statusText} — ${(text || "").slice(0, 200)}`, 502);
+      throw new Error(`Kayak hotels error: ${res.status} ${res.statusText} — ${(text || "").slice(0, 200)}`);
     }
-    try { data = JSON.parse(text); } catch { return errorResponse("Kayak hotels returned non-JSON", 502); }
+    try { data = JSON.parse(text); } catch { throw new Error("Kayak hotels returned non-JSON"); }
     if (data.isComplete) break;
     await sleep(POLL_DELAY_MS);
   }
@@ -262,10 +269,56 @@ export async function hotelsHandler(
     })
     .filter((c: AffiliateCard) => c.deepLinkUrl);
 
-  const response: ToolResponse<AffiliateCard> = {
+  return {
     results,
     total: data.totalResults ?? results.length,
     source: "kayak-hotels",
   };
-  return jsonResponse(response);
+}
+
+// ─── Route wrappers ────────────────────────────────────────────────────────
+// Thin: parse body, delegate to core, translate throws into errorResponse.
+// A "credentials not configured" thrown message maps back to 503 to preserve
+// the pre-refactor behaviour when Kayak env vars are missing.
+
+function errorStatusFor(msg: string): number {
+  return /credentials not configured/i.test(msg) ? 503 : 502;
+}
+
+export async function flightsHandler(
+  request: ZuploRequest,
+  context: ZuploContext,
+): Promise<Response> {
+  let body: KayakFlightInput;
+  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
+
+  if (!body.origin || !body.destination || !body.departureDate) {
+    return errorResponse("origin, destination and departureDate are required", 400);
+  }
+
+  try {
+    return jsonResponse(await searchFlights(body, request));
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    return errorResponse(msg, errorStatusFor(msg));
+  }
+}
+
+export async function hotelsHandler(
+  request: ZuploRequest,
+  context: ZuploContext,
+): Promise<Response> {
+  let body: KayakHotelInput;
+  try { body = await request.json(); } catch { return errorResponse("Invalid JSON body", 400); }
+
+  if (!body.destination || !body.checkIn || !body.checkOut) {
+    return errorResponse("destination, checkIn and checkOut are required", 400);
+  }
+
+  try {
+    return jsonResponse(await searchHotels(body, request));
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    return errorResponse(msg, errorStatusFor(msg));
+  }
 }
