@@ -39,19 +39,34 @@ export function tagTravelpayoutsUrl(baseUrl: string): string {
 // If TICKETMASTER_IMPACT_LINK_TEMPLATE is unset, the URL passes through
 // untagged — better an un-attributed link than a broken redirect.
 //
-// If the URL is ALREADY an Impact tracking link (ticketmaster.evyy.net or
-// impact.com), it passes through unchanged. Ticketmaster's Discovery API
-// returns pre-wrapped affiliate URLs for accounts with an active Impact
-// integration (path segment carries the account's vanity slug, e.g.
-// `evyy.net/c/acorre/...`). Wrapping those again produces a two-hop
-// redirect that Impact rejects on the second hop as "The link you clicked
-// on is malformed" — the user never reaches the event page.
+// If the URL is ALREADY an Impact link (ticketmaster.evyy.net or impact.com),
+// Ticketmaster's Discovery API has pre-wrapped it — but with a regional
+// action-tracker (e.g. 2038753/23890 for ticketmaster.de) that a publisher
+// enrolled only in the US Ticketmaster program isn't authorised for. Impact
+// rejects the click server-side as "The link you clicked on is malformed."
+//
+// Fix: extract the underlying event URL from the `u=` parameter of the pre-
+// wrap and re-wrap with OUR configured template. Verified that the US
+// tracker in the template accepts any regional Ticketmaster destination
+// (.de, .co.uk, .pl, etc.) and appends full click-tracking correctly, so
+// attribution is preserved across all markets without additional Impact
+// enrolment.
 export function tagTicketmasterUrl(url: string): string {
-  if (/ticketmaster\.evyy\.net|impact\.com/i.test(url)) return url;
-
   const template = getenv("TICKETMASTER_IMPACT_LINK_TEMPLATE");
   if (!template || !template.includes("{url}")) return url;
-  return template.replace("{url}", encodeURIComponent(url));
+
+  let destination = url;
+  if (/ticketmaster\.evyy\.net|impact\.com/i.test(url)) {
+    try {
+      const inner = new URL(url).searchParams.get("u");
+      if (!inner) return url;
+      destination = inner;
+    } catch {
+      return url;
+    }
+  }
+
+  return template.replace("{url}", encodeURIComponent(destination));
 }
 
 export function tagEventbriteUrl(url: string): string {
