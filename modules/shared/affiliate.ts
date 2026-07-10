@@ -25,10 +25,23 @@ export function tagTravelpayoutsUrl(baseUrl: string): string {
   return appendParam(baseUrl, "marker", marker);
 }
 
+// Ticketmaster runs its affiliate program through Impact (impact.com), NOT its
+// own Partner Program. Impact does not attribute via appended query parameters
+// on ticketmaster.com — it attributes via a redirect through Impact's tracking
+// domain (ticketmaster.evyy.net), which sets a click-ID cookie and 302s to the
+// destination URL in the `u=` parameter.
+//
+// The client's Impact template is set as TICKETMASTER_IMPACT_LINK_TEMPLATE and
+// must contain a literal `{url}` placeholder — the Ticketmaster event URL is
+// URL-encoded and substituted in. Example template:
+//   https://ticketmaster.evyy.net/c/<PUB_ID>/<SHARED_ID>/<ACTION_ID>?u={url}
+//
+// If TICKETMASTER_IMPACT_LINK_TEMPLATE is unset, the URL passes through
+// untagged — better an un-attributed link than a broken redirect.
 export function tagTicketmasterUrl(url: string): string {
-  const affiliateId = getenv("TICKETMASTER_AFFILIATE_ID");
-  if (!affiliateId) return url;
-  return appendParam(url, "aId", affiliateId);
+  const template = getenv("TICKETMASTER_IMPACT_LINK_TEMPLATE");
+  if (!template || !template.includes("{url}")) return url;
+  return template.replace("{url}", encodeURIComponent(url));
 }
 
 export function tagEventbriteUrl(url: string): string {
