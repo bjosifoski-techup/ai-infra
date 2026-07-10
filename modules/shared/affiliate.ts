@@ -38,7 +38,17 @@ export function tagTravelpayoutsUrl(baseUrl: string): string {
 //
 // If TICKETMASTER_IMPACT_LINK_TEMPLATE is unset, the URL passes through
 // untagged — better an un-attributed link than a broken redirect.
+//
+// If the URL is ALREADY an Impact tracking link (ticketmaster.evyy.net or
+// impact.com), it passes through unchanged. Ticketmaster's Discovery API
+// returns pre-wrapped affiliate URLs for accounts with an active Impact
+// integration (path segment carries the account's vanity slug, e.g.
+// `evyy.net/c/acorre/...`). Wrapping those again produces a two-hop
+// redirect that Impact rejects on the second hop as "The link you clicked
+// on is malformed" — the user never reaches the event page.
 export function tagTicketmasterUrl(url: string): string {
+  if (/ticketmaster\.evyy\.net|impact\.com/i.test(url)) return url;
+
   const template = getenv("TICKETMASTER_IMPACT_LINK_TEMPLATE");
   if (!template || !template.includes("{url}")) return url;
   return template.replace("{url}", encodeURIComponent(url));
