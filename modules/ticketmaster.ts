@@ -23,9 +23,11 @@ export default async function handler(
   let body: {
     query: string;
     city?: string;
+    countryCode?: string;
+    latlong?: string;   // "lat,long" e.g. "48.85,2.35" — takes precedence over city
+    radius?: number;    // miles; default 50 (Ticketmaster's default unit is miles)
     startDate?: string;
     endDate?: string;
-    countryCode?: string;
     pageSize?: number;
   };
   try {
@@ -44,7 +46,17 @@ export default async function handler(
   url.searchParams.set("size", String(Math.min(body.pageSize ?? 10, 20)));
   url.searchParams.set("sort", "date,asc");
 
-  if (body.city) url.searchParams.set("city", body.city);
+  // Geo takes precedence over city — Discovery API's fuzzy city match
+  // can re-introduce cross-country ambiguity (Paris FR vs Paris NV vs
+  // Perris CA all matched "Paris") on top of any geo filter, so city is
+  // forwarded ONLY when latlong is absent.
+  if (body.latlong) {
+    url.searchParams.set("latlong", body.latlong);
+    url.searchParams.set("radius",  String(body.radius ?? 50));
+    url.searchParams.set("unit",    "miles");
+  } else if (body.city) {
+    url.searchParams.set("city", body.city);
+  }
   if (body.countryCode) url.searchParams.set("countryCode", body.countryCode);
   if (body.startDate) url.searchParams.set("startDateTime", `${body.startDate}T00:00:00Z`);
   if (body.endDate) url.searchParams.set("endDateTime", `${body.endDate}T23:59:59Z`);

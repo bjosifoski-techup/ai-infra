@@ -571,8 +571,10 @@
                 "required": ["query"],
                 "properties": {
                   "query": { "type": "string" },
-                  "city": { "type": "string" },
+                  "city": { "type": "string", "description": "Free-text city name (fuzzy match). Ambiguous for shared city names (Paris FR vs Paris NV) — prefer `latlong` when the caller has resolved coordinates." },
                   "countryCode": { "type": "string", "description": "ISO 3166 e.g. US, GB" },
+                  "latlong": { "type": "string", "description": "Comma-separated 'lat,long' (e.g. '48.85,2.35'). When set, takes precedence over `city` — Discovery API's fuzzy city match can re-introduce cross-country ambiguity on top of a geo filter, so `city` is skipped whenever `latlong` is present." },
+                  "radius": { "type": "integer", "description": "Search radius in miles (Discovery API default unit). Default 50 — wide enough for suburbs, tight enough to exclude neighbouring metros.", "default": 50 },
                   "startDate": { "type": "string", "description": "YYYY-MM-DD" },
                   "endDate": { "type": "string", "description": "YYYY-MM-DD" },
                   "pageSize": { "type": "integer", "default": 10 }
