@@ -73,6 +73,14 @@ jwt_auth_config:
   # This must match KEYCLOAK_TIER_CLAIM - the claim you set in the protocol mapper.
   team_id_jwt_field: ${KEYCLOAK_TIER_CLAIM}
 
+  # Default team when the token has no tier claim.
+  # This happens for guests and, by design, for users whose subscription was
+  # cancelled: the Stripe webhook strips their tier realm role, so the
+  # single-valued role mapper emits no "tier" claim at all. Falling back to
+  # "guest" (lowest limits) is the safe default - never leave such requests
+  # unmatched. Keep this aligned with the lowest tier in team_management below.
+  team_id_default: guest
+
 # ---------------------------------------------------------------------------
 # Per-tier rate limits
 # ---------------------------------------------------------------------------
