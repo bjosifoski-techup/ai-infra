@@ -131,6 +131,35 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect"
+    },
+    {
+      "clientId": "emerico-backend",
+      "name": "Commerce API Backend",
+      "description": "Confidential service-account client for the Commerce API. Uses the client-credentials grant to call the Keycloak Admin REST API and (re)assign tier realm roles - silver/gold/platinum - when a Stripe subscription changes. The secret below is a placeholder: rotate it in the admin console after import and put the real value in the Commerce API env as KEYCLOAK_ADMIN_CLIENT_SECRET.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "secret": "REPLACE_WITH_KC_BACKEND_CLIENT_SECRET"
+    }
+  ],
+
+  "users": [
+    {
+      "username": "service-account-emerico-backend",
+      "enabled": true,
+      "serviceAccountClientId": "emerico-backend",
+      "comment": "Service account for the emerico-backend client. The realm-management roles below authorize the Commerce API to read realm roles (view-realm) and assign/remove user role mappings (manage-users) - required for the Stripe webhook tier-role sync.",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-realm"
+        ]
+      }
     }
   ],
 
