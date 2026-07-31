@@ -1,4 +1,4 @@
-# Emerico AI Infrastructure | TEST
+# Emerico AI Infrastructure
 
 This repo contains all server-side infrastructure for the Emerico AI Commerce Platform. It is one of three repos that together make up the product.
 
