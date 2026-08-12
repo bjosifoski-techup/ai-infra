@@ -90,6 +90,22 @@ export default async function handler(
       .filter(Boolean)
       .join(" · ");
 
+    /* The parts, as well as the joined string.
+     *
+     * dateOrVenue pre-joins date, venue and city, which means a consumer can
+     * only ever print it back verbatim. The new design needs a two-line date
+     * badge and the city on its own row, so it needs the values apart — and
+     * once they are separate, callers can also sort and filter by date, which
+     * a formatted string never allowed.
+     *
+     * priceRange is in the Ticketmaster payload and was never read. */
+    const endDate = e.dates?.end?.localDate as string | undefined;
+
+    const tmPrice = Array.isArray(e.priceRanges) ? e.priceRanges[0] : undefined;
+    const priceRange = tmPrice && typeof tmPrice.min === "number" && typeof tmPrice.max === "number"
+      ? { min: tmPrice.min, max: tmPrice.max, currency: tmPrice.currency ?? "USD" }
+      : undefined;
+
     return {
       kind: "affiliate",
       provider: "ticketmaster",
@@ -97,6 +113,11 @@ export default async function handler(
       dateOrVenue: dateOrVenue || undefined,
       imageUrl: e.images?.[0]?.url,
       deepLinkUrl: tagTicketmasterUrl(e.url ?? ""),
+      startDate: date || undefined,
+      endDate,
+      venueName: venueName || undefined,
+      city: city || undefined,
+      priceRange,
     };
   });
 
