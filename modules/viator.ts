@@ -105,6 +105,22 @@ export default async function handler(
     const primaryDestinationName: string | undefined =
       p.primaryDestinationName ?? p.destinations?.find((d: any) => d?.primary)?.name;
 
+    /* Rating, review count and the from-price arrive on every product in the
+     * freetext response and were being dropped. An attraction card without
+     * them is just a photo and a title — the shopper has nothing to choose on.
+     *
+     * Guarded rather than defaulted: a product with no reviews yet must not be
+     * rendered as 0 stars, and a missing price must not become 0.00. */
+    const rating      = typeof p.reviews?.combinedAverageRating === "number"
+      ? p.reviews.combinedAverageRating : undefined;
+    const reviewCount = typeof p.reviews?.totalReviews === "number"
+      ? p.reviews.totalReviews : undefined;
+
+    const fromPrice   = p.pricing?.summary?.fromPrice;
+    const priceFrom   = typeof fromPrice === "number"
+      ? { amount: fromPrice, currency: p.pricing?.currency ?? body.currency ?? "USD" }
+      : undefined;
+
     return {
       kind: "affiliate",
       provider: "viator",
@@ -113,6 +129,9 @@ export default async function handler(
       imageUrl: p.images?.[0]?.variants?.find((v: any) => v.width >= 400)?.url
         ?? p.images?.[0]?.variants?.[0]?.url,
       deepLinkUrl: tagViatorUrl(rawUrl),
+      rating,
+      reviewCount,
+      priceFrom,
     };
   });
 
